@@ -6,9 +6,10 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
 - Pandas  
 - NumPy  
 - Dask
- 
+- Python >= 3.8.2
 
 ## Installation guide
+PRED-LD is written in Python (ver. 3.8.2)
 
 1)	Download PRED_LD from: https://github.com/gmanios/PRED-LD
 
@@ -27,7 +28,7 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
     ```
     
 ## Arguments
-The script accepts the following command-line arguments:
+PRED-LD accepts the following command-line arguments:
 
 - --file-path: The path to the input file containing SNP data. The file should be in tab-separated format (TSV,TXT).
 - --r2threshold: A float value specifying the R2 threshold for LD filtering.
@@ -36,7 +37,7 @@ The script accepts the following command-line arguments:
 - --ref: A string indicating the LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map)
 
 ## Usage
-To run the script, navigate to the directory containing the script and execute it with the required arguments. Here is an example command:
+To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Here is an example command:
 ```` 
 python pred_ld.py --file-path /path/to/your/data.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref ref_folder_containing_LD_statistics
 ````
