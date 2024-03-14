@@ -8,10 +8,24 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
 - Dask
  
 
-## Installation
-- Clone or download this repository to your local machine.
-- Ensure that the topld_api executable is correctly placed and has execution permissions. If it's not executable, you can usually change this by running chmod +x topld_api in a terminal.
+## Installation guide
 
+1)	Download PRED_LD from: https://github.com/gmanios/PRED-LD
+
+2)	After downloading the .zip folder of MAGE from GitHub, extract it to a working directory. 
+
+3)	Το install the requirements, pip needs to be installed. Download the script for pip, from: https://bootstrap.pypa.io/get-pip.py.
+
+4)	Open a terminal/command prompt, cd to the folder containing the get-pip.py file and run:
+    ```
+    python get-pip.py
+    ```
+
+5)	To install the mentioned requirements with pip, open a terminal/command prompt and run:
+    ```
+    pip install -r /path/to/requirements.txt
+    ```
+    
 ## Arguments
 The script accepts the following command-line arguments:
 
