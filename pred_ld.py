@@ -4,12 +4,12 @@ import numpy as np
 import os
 import argparse
 import pandas as pd
-
 start = time.time()
-
+imp_snp_list = []
 
 def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold):
     print("Loading Hap Map files...")
+
     if population not in ['YRI', 'CHB', 'JPT', 'CEU', 'MKK', 'LWK', 'CHD', 'GIH', "TSI", 'MEX', "ASW"]:
         print("This population is not available in HapMap files. Please select a different population...")
         exit()
@@ -51,7 +51,11 @@ def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold
     merged_df = merged_df[['pos1', 'pos2', 'rsID1', 'rsID2', 'MAF_x', "MAF_y", "R2"]]
     merged_df = merged_df.rename(columns={'MAF_x': 'MAF1', 'MAF_y': 'MAF2'})
 
-    final_result = merged_df[merged_df['rsID1'].isin(rs_list)]
+    if  imp_snp_list:
+        final_result = merged_df[merged_df['rsID1'].isin(rs_list) & merged_df['rsID2'].isin(imp_snp_list)]
+
+    else:
+        final_result = merged_df[merged_df['rsID1'].isin(rs_list)]
     final_result = final_result.compute()  # Important: This triggers the actual computation
     if final_result.empty:
         print("No SNPs found")
@@ -109,6 +113,7 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome):
 
 
 def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold):
+
     if R2_threshold < 0.8:
         raise ValueError("To use Pheno Scanner data, try with an R2 threshold > 0.8")
 
@@ -146,7 +151,12 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
                  'hg19_coordinates': 'pos2(hg19)', 'r2': 'R2'})
     final_result = final_result[['rsID1', 'pos1(hg19)', 'rsID2', 'pos2(hg19)', 'R2', 'MAF1', 'MAF2']]
 
-    final_result = final_result[final_result['rsID2'].isin(rs_list)]
+
+    if imp_snp_list:
+        final_result = final_result[final_result['rsID2'].isin(rs_list) & final_result['rsID1'].isin(imp_snp_list)]
+
+    else:
+        final_result = final_result[final_result['rsID2'].isin(rs_list)]
     if final_result.empty:
         print("No SNPs found")
         exit()
@@ -232,8 +242,13 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold):
     final_df = merged_df[['SNP1', 'SNP2', 'R2', 'rsID1', 'rsID2', 'MAF1', 'MAF2']]
     final_df = final_df.rename(columns={'SNP1': 'pos1', 'SNP2': 'pos2'})
 
+
+
+    if imp_snp_list:
+        result = final_df[final_df['rsID1'].isin(rs_list) & final_df['rsID2'].isin(imp_snp_list)].compute()
     # Compute at the end
-    result = final_df[final_df['rsID1'].isin(rs_list)].compute()
+    else:
+        result = final_df[final_df['rsID1'].isin(rs_list)].compute()
 
     if result.empty:
         print("No SNPs found")
@@ -369,6 +384,8 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file):
 
 
 def main():
+    global imp_snp_list
+
     # Parse arguments
     version = '1.0.0'
     print("---------------------------------------------------------------------------------")
@@ -384,7 +401,8 @@ def main():
     parser.add_argument('--pop', type=str, required=True, help='Population')
 
     parser.add_argument('--maf', type=float, required=True, help='MAF input value')
-    parser.add_argument('--ref', type=str, required=True, help='LD Reference files (pheno_Scanner, TOP_LD, Hap_Map)')
+    parser.add_argument('--ref', type=str, required=True, help='LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map)')
+    parser.add_argument('--imp_list', type=str, required=False, help='A filename to define SNPs to impute (each SNP has a new line, no header)')
 
     args = parser.parse_args()
 
@@ -394,6 +412,10 @@ def main():
     population = args.pop
     maf_input = args.maf
     ref_file = args.ref
+    imp_snp_list_path = args.imp_list
+    print(imp_snp_list_path)
+    if imp_snp_list_path != None:
+        imp_snp_list =  list(pd.read_csv(imp_snp_list_path, header=None)[0])
     # chromosome = args.chrom
 
     if not os.path.exists(file_path):
