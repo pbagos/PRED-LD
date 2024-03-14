@@ -29,5 +29,5 @@ python pred_ld.py --file-path /path/to/your/data.txt --r2threshold 0.8 --pop EUR
 
 ## Example
 ```` 
-python pred_ld.py --file-path TOP_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref 
+python pred_ld.py --file-path TOP_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref Pheno_Scanner
 ````
