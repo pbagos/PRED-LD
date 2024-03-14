@@ -5,7 +5,6 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
 ## Prerequisites
 - Pandas  
 - NumPy  
-- Access to the topld_api executable
 - Dask
  
 
