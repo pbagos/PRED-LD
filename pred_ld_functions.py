@@ -93,16 +93,18 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
-    OR_t = outputData['beta']
+    OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
     f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    
     Var_M = f_deriv ** 2 * var_x ** 2
 
-    out_df['beta'] = OR_m
+    out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
     out_df['missing'] = 1
+    out_df['R2'] = r2_value
     print(f"Imputed : {sum(out_df['missing'])} SNPs in chromosome " + str(chromosome))
     # print(out_df.head())
     return out_df
@@ -194,16 +196,23 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
-    OR_t = outputData['beta']
+    OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
     f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    
     Var_M = f_deriv ** 2 * var_x ** 2
 
-    out_df['beta'] = OR_m
+    out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
     out_df['missing'] = 1
+    out_df['R2'] = r2_value
+    
+    
+    
+    
+    
     print(f"Imputed : {sum(out_df['missing'])} SNPs in chromosome " + str(chromosome))
     # print(out_df.head())
     return out_df
@@ -278,16 +287,19 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
-    OR_t = outputData['beta']
+    OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
     f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    
     Var_M = f_deriv ** 2 * var_x ** 2
 
-    out_df['beta'] = OR_m
+    out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
     out_df['missing'] = 1
+    out_df['R2'] = r2_value
+
     print(f"Imputed : {sum(out_df['missing'])} SNPs in chromosome " + str(chromosome))
 
     return out_df
