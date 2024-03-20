@@ -96,8 +96,9 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    
+    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+
     Var_M = f_deriv ** 2 * var_x ** 2
 
     out_df['beta'] = np.log(OR_m)
@@ -199,8 +200,9 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    
+    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+
     Var_M = f_deriv ** 2 * var_x ** 2
 
     out_df['beta'] = np.log(OR_m)
@@ -282,16 +284,17 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_
     pb = 1 - outputData['MAF2']
     pA = outputData['MAF1']
     pB = outputData['MAF2']
-    pT = outputData['MAF1']
-    pM = outputData['MAF2']
+    pT =  outputData['MAF1']
+    pM =  outputData['MAF2']
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    
+    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+ 
     Var_M = f_deriv ** 2 * var_x ** 2
 
     out_df['beta'] = np.log(OR_m)
