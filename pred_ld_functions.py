@@ -88,16 +88,16 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
     pb = 1 - outputData['MAF2'].astype(float)
     pA = outputData['MAF1'].astype(float)
     pB = outputData['MAF2'].astype(float)
-    pT = outputData['MAF1'].astype(float)
-    pM = outputData['MAF2'].astype(float)
+    pT = 1- outputData['MAF1'].astype(float)
+    pM =1- outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
 
     Var_M = f_deriv ** 2 * var_x ** 2
 
@@ -192,16 +192,16 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     pb = 1 - outputData['MAF2'].astype(float)
     pA = outputData['MAF1'].astype(float)
     pB = outputData['MAF2'].astype(float)
-    pT = outputData['MAF1'].astype(float)
-    pM = outputData['MAF2'].astype(float)
+    pT = 1-outputData['MAF1'].astype(float)
+    pM = 1- outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
 
     Var_M = f_deriv ** 2 * var_x ** 2
 
@@ -284,19 +284,22 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_
     pb = 1 - outputData['MAF2']
     pA = outputData['MAF1']
     pB = outputData['MAF2']
-    pT =  outputData['MAF1']
-    pM =  outputData['MAF2']
+    pT = 1- outputData['MAF1']
+    pM = 1- outputData['MAF2']
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
- 
+    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+    
+   
+    
     Var_M = f_deriv ** 2 * var_x ** 2
-
+    #Var_M = (1/OR_m) ** 2 * var_x ** 2
+    
     out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
