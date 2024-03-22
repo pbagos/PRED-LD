@@ -1,6 +1,7 @@
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+from sympy import *
 
 
 def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold,imp_snp_list):
@@ -96,8 +97,11 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
     #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+        #Sympy 
+    #f_deriv = (D*(D - pT*(1 - pM))*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
+    f_deriv = (-D*(-D + pT*(1 - pM))*(OR_t - 1)*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
 
     Var_M = f_deriv ** 2 * var_x ** 2
 
@@ -202,6 +206,7 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
     f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
     #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+    f_deriv = (-D*(-D + pT*(1 - pM))*(OR_t - 1)*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
 
     Var_M = f_deriv ** 2 * var_x ** 2
 
@@ -292,11 +297,12 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_
     OR_t =  np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
     #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
     
-   
-    
+    #Sympy 
+    #f_deriv = (D*(D - pT*(1 - pM))*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
+    f_deriv = (-D*(-D + pT*(1 - pM))*(OR_t - 1)*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
     Var_M = f_deriv ** 2 * var_x ** 2
     #Var_M = (1/OR_m) ** 2 * var_x ** 2
     
