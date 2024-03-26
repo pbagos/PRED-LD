@@ -1,8 +1,7 @@
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-from sympy import *
-
+ 
 
 def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold,imp_snp_list):
     print("Loading Hap Map files...")
@@ -12,21 +11,23 @@ def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold
         exit()
     maf_file = f'ref/Hap_Map/allele_freqs_chr{chrom}_{population}_phase3.2_nr.b36_fwd.txt.gz'
     ld_file = f'ref/Hap_Map/ld_chr{chrom}_{population}.txt.gz'
-
+    maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None)
+    # Calculating the Minor Allele Frequency (MAF)
+    maf_df['MAF'] = maf_df[['refallele_freq', 'otherallele_freq']].min(axis=1)
     # Filter MAF DataFrame using Dask
-    maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None, usecols=['rs#', 'chrom', 'pos', 'otherallele_freq'],
+    #maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None, usecols=['rs#', 'chrom', 'pos', 'otherallele_freq'],  )
                           
-                         )
+                       
 
     # maf_df['het-freq'] = maf_df['het-freq'].astype(float)
-    maf_df = maf_df[maf_df['otherallele_freq'] >= float(maf_threshold)]
+    maf_df = maf_df[maf_df['MAF'] >= float(maf_threshold)]
 
     # Process LD DataFrame using Dask
     ld_df = dd.read_csv(ld_file, blocksize=None,sep='\s+', header=None)
 
     ld_df = ld_df[(ld_df[3] != ld_df[4]) & (ld_df[6] >= R2_threshold)]
 
-    maf_df = maf_df.rename(columns={'rs#': 'rsID', 'otherallele_freq': 'MAF'})
+    maf_df = maf_df.rename(columns={'rs#': 'rsID'   })
 
     # Define the new column names
     new_column_names = {
@@ -73,7 +74,7 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
     outputData = outputData.drop(['snp'], axis=1)
 
     outputData['missing'] = 0
-    # print(outputData.head())
+    print(outputData.head())
     outputData = outputData.groupby('rsID2').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
 
     out_df = pd.DataFrame({
@@ -90,7 +91,7 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
     pA = outputData['MAF1'].astype(float)
     pB = outputData['MAF2'].astype(float)
     pT = 1- outputData['MAF1'].astype(float)
-    pM =1- outputData['MAF2'].astype(float)
+    pM = 1- outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
@@ -135,10 +136,10 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
                          )
     maf_df = maf_df[(maf_df['chr'] == chrom) & (maf_df[maf_pop] != '-')]
     maf_df[maf_pop] = maf_df[maf_pop].astype(float)
-    maf_df = maf_df[maf_df[maf_pop] >= float(maf_threshold)]
+    maf_df = maf_df[1- maf_df[maf_pop] >= float(maf_threshold)]
 
     # Process LD DataFrame using Dask
-    ld_df = dd.read_csv(ld_file, sep='\s+',blocksize=None, usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2'])
+    ld_df = dd.read_csv(ld_file, sep='\s+',blocksize=None, usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2'],dtype={'r2': 'float64'})
     ld_df = ld_df[(ld_df['ref_rsid'] != ld_df['rsid']) & (ld_df['r2'] >= R2_threshold)]
 
     merged_df = dd.merge(ld_df, maf_df.rename(
@@ -196,8 +197,8 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     pb = 1 - outputData['MAF2'].astype(float)
     pA = outputData['MAF1'].astype(float)
     pB = outputData['MAF2'].astype(float)
-    pT = 1-outputData['MAF1'].astype(float)
-    pM = 1- outputData['MAF2'].astype(float)
+    pT = outputData['MAF1'].astype(float)
+    pM =  outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
@@ -320,6 +321,7 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_
 def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp_list):
 
     final_results_list = []
+  
     study_df = pd.read_csv(file_path, sep="\t")
     chroms = list(set(study_df['chr']))
     ref_panel = ref_file
@@ -350,7 +352,16 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
-            final_df.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            # Separate the DataFrame into two based on the 'missing' column.
+            final_df_miss = final_df[final_df['missing'] == 1]
+            final_df_init = final_df[final_df['missing'] == 0]
+            
+            # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
+            final_df_init = final_df_init.drop_duplicates(subset="snp")
+            
+            # Concatenate the two DataFrames back together. You might consider resetting the index.
+            final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
+            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
 
     if ref_panel == 'Pheno_Scanner':
@@ -371,7 +382,16 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
-            final_df.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            # Separate the DataFrame into two based on the 'missing' column.
+            final_df_miss = final_df[final_df['missing'] == 1]
+            final_df_init = final_df[final_df['missing'] == 0]
+            
+            # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
+            final_df_init = final_df_init.drop_duplicates(subset="snp")
+            
+            # Concatenate the two DataFrames back together. You might consider resetting the index.
+            final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
+            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
 
     if ref_panel == 'Hap_Map':
@@ -392,6 +412,15 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
-            final_df.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            # Separate the DataFrame into two based on the 'missing' column.
+            final_df_miss = final_df[final_df['missing'] == 1]
+            final_df_init = final_df[final_df['missing'] == 0]
+            
+            # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
+            final_df_init = final_df_init.drop_duplicates(subset="snp")
+            
+            # Concatenate the two DataFrames back together. You might consider resetting the index.
+            final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
+            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
 
