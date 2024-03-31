@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
-    print("Loading Hap Map files...")
+    print(f"Loading Hap Map files ({population})...")
 
     if population not in ['YRI', 'CHB', 'JPT', 'CEU', 'MKK', 'LWK', 'CHD', 'GIH', "TSI", 'MEX', "ASW"]:
         print("This population is not available in HapMap files. Please select a different population...")
@@ -73,7 +73,7 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
     outputData = outputData.drop(['snp'], axis=1)
 
     outputData['missing'] = 0
-    print(outputData.head())
+    #print(outputData.head())
     outputData = outputData.groupby('rsID2').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
 
     out_df = pd.DataFrame({
@@ -120,8 +120,9 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
 
 def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     if R2_threshold < 0.8:
-        raise ValueError("To use Pheno Scanner data, try with an R2 threshold > 0.8")
-
+        print ("Pheno Scanner data are with a R2 threshold >= 0.8. The R2 threshold will be set to 0.8")
+        R2_threshold = 0.8
+        
     print("Loading Pheno Scanner files...")
 
     maf_file = 'ref/pheno_Scanner/1000G.txt'
@@ -433,17 +434,64 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
 
     if ref_panel =='all_panels':
-        print("Checking  all LD panels")
+        
+        print(f"Checking all LD sources")
         for chrom in chroms:
-            # # For HapMap, we need to take all the panels and merge them...
-            # if population == 'EUR':
-            #     pop_hm_list = ['CEU','TSI']
-            #     for pop in pop_hm_list:
-            #         final_data_hm  = Hap_Map_process(study_df, r2threshold, population , maf_input, chrom, imp_snp_list)
-            # 
-            #     final_data_ps['source'] = 'Pheno Scanner'
-            # 
-            # #final_data_hm = Hap_Map_process(study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
+            # For HapMap, we need to take all the panels and merge them...
+            if population == 'EUR':
+                   
+                    pop_hm = "CEU" 
+                    final_data_hm_CEU  = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    
+                    pop_hm = "TSI" 
+                    final_data_hm_TSI = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    
+                    
+                    final_data_hm = pd.concat([final_data_hm_CEU, final_data_hm_TSI])
+                    # Keep the largest R2 value if a snp is common in any of the panels
+                    final_data_hm = final_data_hm.groupby('snp').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
+                  
+                    
+                    
+            if population == 'AFR':
+                   
+                    pop_hm = "YRI" 
+                    final_data_hm_YRI  = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                   
+                    pop_hm = "MKK" 
+                    final_data_hm_MKK = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                   
+                    pop_hm = "LWK" 
+                    final_data_hm_LWK = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                   
+                    pop_hm = "ASW" 
+                    final_data_hm_ASW = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+ 
+                    
+                    final_data_hm = pd.concat([final_data_hm_YRI, final_data_hm_MKK,final_data_hm_LWK,final_data_hm_ASW ])
+           
+            if population == 'EAS':
+                   
+                    pop_hm = "CHB" 
+                    final_data_hm_CHB  = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    pop_hm = "JPT" 
+                    final_data_hm_JPT = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    pop_hm = "CHD" 
+                    final_data_hm_CHD = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    
+                    
+
+                    final_data_hm = pd.concat([ final_data_hm_CHB , final_data_hm_JPT, final_data_hm_CHD])
+            
+            if population == 'SAS':
+                  pop_hm = 'GIH'
+                  final_data_hm = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+
+            # Keep the largest R2 value if a snp is common in any of the panels
+            final_data_hm = final_data_hm.groupby('snp').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
+            final_data_hm['source'] = 'HapMap'
+                    
+            #final_data_hm = Hap_Map_process(study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
 
             final_data_ps = pheno_Scanner_process (study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
 
@@ -451,13 +499,17 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             final_data_ps['source'] = 'Pheno Scanner'
             final_data_tld['source'] = 'TOP-LD'
-            #final_data_hm['source'] = 'HapMap'
+           
 
            # final_data = pd.concat([final_data_hm, final_data_ps, final_data_tld])
-            final_data = pd.concat([  final_data_ps, final_data_tld])
-
+            final_data = pd.concat([ final_data_hm, final_data_ps, final_data_tld],ignore_index=True)
+       
             # Keep the largest R2 value if a snp is common in any of the panels
-            final_data = final_data.groupby('snp').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
+            if imp_snp_list == True: 
+              final_data = final_data.loc[final_data.groupby('snp')['R2'].idxmax()]
+            else : 
+              final_data = final_data.groupby('snp').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
+            print(len(final_data))
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
@@ -465,6 +517,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             data['source'] = 'GWAS'
             final_data = pd.concat([final_data, data], ignore_index=True)
 
+            print(f"Total Imputed SNPs: {len(final_data[final_data['missing'] == 1])} SNPs")
 
             print(f"Total : {len(final_data)} SNPs")
 
