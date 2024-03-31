@@ -1,9 +1,9 @@
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
- 
 
-def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold,imp_snp_list):
+
+def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     print("Loading Hap Map files...")
 
     if population not in ['YRI', 'CHB', 'JPT', 'CEU', 'MKK', 'LWK', 'CHD', 'GIH', "TSI", 'MEX', "ASW"]:
@@ -11,23 +11,21 @@ def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold
         exit()
     maf_file = f'ref/Hap_Map/allele_freqs_chr{chrom}_{population}_phase3.2_nr.b36_fwd.txt.gz'
     ld_file = f'ref/Hap_Map/ld_chr{chrom}_{population}.txt.gz'
-    maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None)
+    maf_df = dd.read_csv(maf_file, sep='\s+', blocksize=None)
     # Calculating the Minor Allele Frequency (MAF)
     maf_df['MAF'] = maf_df[['refallele_freq', 'otherallele_freq']].min(axis=1)
     # Filter MAF DataFrame using Dask
-    #maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None, usecols=['rs#', 'chrom', 'pos', 'otherallele_freq'],  )
-                          
-                       
+    # maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None, usecols=['rs#', 'chrom', 'pos', 'otherallele_freq'],  )
 
     # maf_df['het-freq'] = maf_df['het-freq'].astype(float)
     maf_df = maf_df[maf_df['MAF'] >= float(maf_threshold)]
 
     # Process LD DataFrame using Dask
-    ld_df = dd.read_csv(ld_file, blocksize=None,sep='\s+', header=None)
+    ld_df = dd.read_csv(ld_file, blocksize=None, sep='\s+', header=None)
 
     ld_df = ld_df[(ld_df[3] != ld_df[4]) & (ld_df[6] >= R2_threshold)]
 
-    maf_df = maf_df.rename(columns={'rs#': 'rsID'   })
+    maf_df = maf_df.rename(columns={'rs#': 'rsID'})
 
     # Define the new column names
     new_column_names = {
@@ -64,9 +62,10 @@ def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold
     return final_result
 
 
-def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp_snp_list):
+def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, imp_snp_list):
     # Fetch LD info data
-    outputData = Hap_Map_LD_info_dask(list(study_df['snp']), chromosome, population, maf_input, r2threshold,imp_snp_list)
+    outputData = Hap_Map_LD_info_dask(list(study_df['snp']), chromosome, population, maf_input, r2threshold,
+                                      imp_snp_list)
 
     outputData = pd.merge(outputData, study_df, left_on='rsID1', right_on='snp', how='left')
     outputData['chr'] = chromosome
@@ -90,19 +89,22 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
     pb = 1 - outputData['MAF2'].astype(float)
     pA = outputData['MAF1'].astype(float)
     pB = outputData['MAF2'].astype(float)
-    pT = 1- outputData['MAF1'].astype(float)
-    pM = 1- outputData['MAF2'].astype(float)
+    pT = 1 - outputData['MAF1'].astype(float)
+    pM = 1 - outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
-    OR_t =  np.exp(outputData['beta'])
+    OR_t = np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
-        #Sympy 
-    #f_deriv = (D*(D - pT*(1 - pM))*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
-    f_deriv = (-D*(-D + pT*(1 - pM))*(OR_t - 1)*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
+    # f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    # f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+    # Sympy
+    # f_deriv = (D*(D - pT*(1 - pM))*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
+    f_deriv = (-D * (-D + pT * (1 - pM)) * (OR_t - 1) * OR_t / (
+                pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1) ** 2) + D * OR_t / (
+                           pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1))) / (
+                          D * (OR_t - 1) / (pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1)) + 1)
 
     Var_M = f_deriv ** 2 * var_x ** 2
 
@@ -116,7 +118,7 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome,imp
     return out_df
 
 
-def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold,imp_snp_list):
+def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     if R2_threshold < 0.8:
         raise ValueError("To use Pheno Scanner data, try with an R2 threshold > 0.8")
 
@@ -131,15 +133,16 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
         raise ValueError(f"Unsupported population: {population}")
 
     # Filter MAF DataFrame using Dask
-    maf_df = dd.read_csv(maf_file, sep='\s+',blocksize=None, usecols=['hg19_coordinates', 'chr', 'rsid', maf_pop],
+    maf_df = dd.read_csv(maf_file, sep='\s+', blocksize=None, usecols=['hg19_coordinates', 'chr', 'rsid', maf_pop],
                          dtype={maf_pop: 'object'}
                          )
     maf_df = maf_df[(maf_df['chr'] == chrom) & (maf_df[maf_pop] != '-')]
     maf_df[maf_pop] = maf_df[maf_pop].astype(float)
-    maf_df = maf_df[1- maf_df[maf_pop] >= float(maf_threshold)]
+    maf_df = maf_df[1 - maf_df[maf_pop] >= float(maf_threshold)]
 
     # Process LD DataFrame using Dask
-    ld_df = dd.read_csv(ld_file, sep='\s+',blocksize=None, usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2'],dtype={'r2': 'float64'})
+    ld_df = dd.read_csv(ld_file, sep='\s+', blocksize=None, usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2'],
+                        dtype={'r2': 'float64'})
     ld_df = ld_df[(ld_df['ref_rsid'] != ld_df['rsid']) & (ld_df['r2'] >= R2_threshold)]
 
     merged_df = dd.merge(ld_df, maf_df.rename(
@@ -169,9 +172,10 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
     return final_result
 
 
-def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromosome,imp_snp_list):
+def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromosome, imp_snp_list):
     # Fetch LD info data
-    outputData = pheno_Scanner_LD_info_dask(list(study_df['snp']), chromosome, population, maf_input, r2threshold,imp_snp_list)
+    outputData = pheno_Scanner_LD_info_dask(list(study_df['snp']), chromosome, population, maf_input, r2threshold,
+                                            imp_snp_list)
     outputData = pd.merge(outputData, study_df, left_on='rsID2', right_on='snp', how='left')
     outputData['chr'] = chromosome
 
@@ -198,16 +202,19 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     pA = outputData['MAF1'].astype(float)
     pB = outputData['MAF2'].astype(float)
     pT = outputData['MAF1'].astype(float)
-    pM =  outputData['MAF2'].astype(float)
+    pM = outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
-    OR_t =  np.exp(outputData['beta'])
+    OR_t = np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
-    f_deriv = (-D*(-D + pT*(1 - pM))*(OR_t - 1)*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
+    # f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    # f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+    f_deriv = (-D * (-D + pT * (1 - pM)) * (OR_t - 1) * OR_t / (
+                pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1) ** 2) + D * OR_t / (
+                           pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1))) / (
+                          D * (OR_t - 1) / (pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1)) + 1)
 
     Var_M = f_deriv ** 2 * var_x ** 2
 
@@ -216,21 +223,19 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     out_df['z'] = out_df['beta'] / out_df['SE']
     out_df['missing'] = 1
     out_df['R2'] = r2_value
-    
-    
-    
-    
-    
+
     print(f"Imputed : {sum(out_df['missing'])} SNPs in chromosome " + str(chromosome))
     # print(out_df.head())
     return out_df
 
 
-def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold,imp_snp_list):
+def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     print("Loading TOP-LD files...")
     # Consider converting these to Parquet for better performance
-    maf_file = 'ref/TOP_LD/' + population +'/SNV/'+ population + '_chr' + str(chrom) + '_no_filter_0.2_1000000_info_annotation.csv.gz'
-    ld_file = 'ref/TOP_LD/'+ population +'/SNV/'+ population +  '_chr' + str(chrom) + '_no_filter_0.2_1000000_LD.csv.gz'
+    maf_file = 'ref/TOP_LD/' + population + '/SNV/' + population + '_chr' + str(
+        chrom) + '_no_filter_0.2_1000000_info_annotation.csv.gz'
+    ld_file = 'ref/TOP_LD/' + population + '/SNV/' + population + '_chr' + str(
+        chrom) + '_no_filter_0.2_1000000_LD.csv.gz'
 
     # Load MAF DataFrame
     maf_df = dd.read_csv(maf_file, blocksize=None, usecols=['Position', 'rsID', 'MAF'])
@@ -266,9 +271,9 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold,imp_snp_
     return result
 
 
-def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_snp_list):
+def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome, imp_snp_list):
     # Fetch LD info data
-    outputData = TOP_LD_info(list(study_df['snp']), chromosome, population, maf_input, r2threshold,imp_snp_list)
+    outputData = TOP_LD_info(list(study_df['snp']), chromosome, population, maf_input, r2threshold, imp_snp_list)
 
     outputData = pd.merge(outputData, study_df, left_on='rsID1', right_on='snp', how='left')
 
@@ -290,23 +295,26 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_
     pb = 1 - outputData['MAF2']
     pA = outputData['MAF1']
     pB = outputData['MAF2']
-    pT = 1- outputData['MAF1']
-    pM = 1- outputData['MAF2']
+    pT = 1 - outputData['MAF1']
+    pM = 1 - outputData['MAF2']
 
     r2_value = outputData['R2']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
-    OR_t =  np.exp(outputData['beta'])
+    OR_t = np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
-    #f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
-    #f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
-    
-    #Sympy 
-    #f_deriv = (D*(D - pT*(1 - pM))*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
-    f_deriv = (-D*(-D + pT*(1 - pM))*(OR_t - 1)*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D*OR_t/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
+    # f_deriv = (D * (1 - pM)) / (pM * (((1 - pM) * pT - D) * (OR_t - 1) - pM + 1) ** 2)
+    # f_deriv = -(D*((2*pM-2)*pT+pM+2*D-1)*OR_t)/((((pM-1)*pT+D)*OR_t+(pM-1)*pT+pM+D-1)*(((pM**2-pM)*pT+D*pM-D)*OR_t+(pM**2-pM)*pT+pM**2+(D-1)*pM+D))
+
+    # Sympy
+    # f_deriv = (D*(D - pT*(1 - pM))*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)**2) + D/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)))/(D*(OR_t - 1)/(pM*(-pM + (-D + pT*(1 - pM))*(OR_t - 1) + 1)) + 1)
+    f_deriv = (-D * (-D + pT * (1 - pM)) * (OR_t - 1) * OR_t / (
+                pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1) ** 2) + D * OR_t / (
+                           pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1))) / (
+                          D * (OR_t - 1) / (pM * (-pM + (-D + pT * (1 - pM)) * (OR_t - 1) + 1)) + 1)
     Var_M = f_deriv ** 2 * var_x ** 2
-    #Var_M = (1/OR_m) ** 2 * var_x ** 2
-    
+    # Var_M = (1/OR_m) ** 2 * var_x ** 2
+
     out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
@@ -318,10 +326,9 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome,imp_
     return out_df
 
 
-def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp_list):
-
+def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_snp_list):
     final_results_list = []
-  
+
     study_df = pd.read_csv(file_path, sep="\t")
     chroms = list(set(study_df['chr']))
     ref_panel = ref_file
@@ -336,7 +343,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
     # Depending on the reference panel...
     if ref_panel == 'TOP_LD':
         for chrom in chroms:
-            final_data = TOP_LD_process(study_df, r2threshold, population, maf_input, chrom,imp_snp_list)
+            final_data = TOP_LD_process(study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
@@ -355,10 +362,10 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
             # Separate the DataFrame into two based on the 'missing' column.
             final_df_miss = final_df[final_df['missing'] == 1]
             final_df_init = final_df[final_df['missing'] == 0]
-            
+
             # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
             final_df_init = final_df_init.drop_duplicates(subset="snp")
-            
+
             # Concatenate the two DataFrames back together. You might consider resetting the index.
             final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
             final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
@@ -366,7 +373,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
 
     if ref_panel == 'Pheno_Scanner':
         for chrom in chroms:
-            final_data = pheno_Scanner_process(study_df, r2threshold, population, maf_input, chrom,imp_snp_list)
+            final_data = pheno_Scanner_process(study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
@@ -385,10 +392,10 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
             # Separate the DataFrame into two based on the 'missing' column.
             final_df_miss = final_df[final_df['missing'] == 1]
             final_df_init = final_df[final_df['missing'] == 0]
-            
+
             # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
             final_df_init = final_df_init.drop_duplicates(subset="snp")
-            
+
             # Concatenate the two DataFrames back together. You might consider resetting the index.
             final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
             final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
@@ -396,7 +403,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
 
     if ref_panel == 'Hap_Map':
         for chrom in chroms:
-            final_data = Hap_Map_process(study_df, r2threshold, population, maf_input, chrom,imp_snp_list)
+            final_data = Hap_Map_process(study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
@@ -415,12 +422,67 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file,imp_snp
             # Separate the DataFrame into two based on the 'missing' column.
             final_df_miss = final_df[final_df['missing'] == 1]
             final_df_init = final_df[final_df['missing'] == 0]
-            
+
             # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
             final_df_init = final_df_init.drop_duplicates(subset="snp")
-            
+
             # Concatenate the two DataFrames back together. You might consider resetting the index.
             final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
             final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
             print("Check 'imputation_results_chr_all.txt' for results")
 
+
+    if ref_panel =='all_panels':
+        print("Checking  all LD panels")
+        for chrom in chroms:
+            # # For HapMap, we need to take all the panels and merge them...
+            # if population == 'EUR':
+            #     pop_hm_list = ['CEU','TSI']
+            #     for pop in pop_hm_list:
+            #         final_data_hm  = Hap_Map_process(study_df, r2threshold, population , maf_input, chrom, imp_snp_list)
+            # 
+            #     final_data_ps['source'] = 'Pheno Scanner'
+            # 
+            # #final_data_hm = Hap_Map_process(study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
+
+            final_data_ps = pheno_Scanner_process (study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
+
+            final_data_tld = TOP_LD_process (study_df, r2threshold, population, maf_input, chrom, imp_snp_list)
+
+            final_data_ps['source'] = 'Pheno Scanner'
+            final_data_tld['source'] = 'TOP-LD'
+            #final_data_hm['source'] = 'HapMap'
+
+           # final_data = pd.concat([final_data_hm, final_data_ps, final_data_tld])
+            final_data = pd.concat([  final_data_ps, final_data_tld])
+
+            # Keep the largest R2 value if a snp is common in any of the panels
+            final_data = final_data.groupby('snp').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
+
+            data = pd.read_csv(file_path, sep="\t")
+            data['z'] = data['beta'] / data['SE']
+            data['missing'] = 0
+            data['source'] = 'GWAS'
+            final_data = pd.concat([final_data, data], ignore_index=True)
+
+
+            print(f"Total : {len(final_data)} SNPs")
+
+            final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
+
+            print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
+            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+            final_results_list.append(final_data)
+        if len(chroms) > 1:
+            final_df = pd.concat(final_results_list)
+            # Separate the DataFrame into two based on the 'missing' column.
+            final_df_miss = final_df[final_df['missing'] == 1]
+            final_df_init = final_df[final_df['missing'] == 0]
+
+            # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
+            final_df_init = final_df_init.drop_duplicates(subset="snp")
+
+            # Concatenate the two DataFrames back together. You might consider resetting the index.
+            final_data = pd.concat([final_df_miss, final_df_init]).reset_index(drop=True)
+            final_data.to_csv("imputation_results_chr_all.txt", sep="\t", index=False)
+            print("Check 'imputation_results_chr_all.txt' for results")
