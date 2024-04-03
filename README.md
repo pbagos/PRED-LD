@@ -69,6 +69,18 @@ PRED-LD accepts the following command-line arguments:
 - --imp_list: A filename (.txt) to define specific rsIDs to impute (each SNP has a new line, no header)
 
 ## Usage
+
+Your input data should be in a tab-separated text file (TXT format). Ensure the file contains the necessary SNP information and adheres to the specified format.
+
+| snp       | chr  | pos       | beta | SE  |
+|-----------|------|-----------|------|-----|
+| rs5747010 | 22 | 16855618| -0.02| 0.12|
+| rs5746647 | 22 | 17057138| 0.05 | 0.25|
+| rs5747988 | 22| 17073066| -0.17| 0.22|
+| rs5747999 | 22| 17075353| -0.07| 0.14|
+| rs2096537 | 22| 17094749| 0.27 | 0.15|
+| rs4428101 | 22| 17118747| -0.22| 0.13|
+
 To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Here is an example command:
 ```` 
 python pred_ld.py --file-path /path/to/your/data.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref ref_folder_containing_LD_statistics
