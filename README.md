@@ -1,9 +1,10 @@
 # PRED-LD
 PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD statistics
  
-## WEb tool
+## Web tool
 [https://rs.dib.uth.gr/PRED_LD/
 ](https://rs.dib.uth.gr/PRED_LD/)
+
 ## Installation guide
 PRED-LD is written in Python (ver. 3.8.2)
 
@@ -26,11 +27,12 @@ PRED-LD is written in Python (ver. 3.8.2)
 ## Arguments
 PRED-LD accepts the following command-line arguments:
 
-- --file-path: The path to the input file containing SNP data. The file should be in tab-separated format (TSV,TXT).
-- --r2threshold: A float value specifying the R2 threshold for LD filtering.
-- --pop: A string indicating the population code to use for LD calculations (EUR, EAS, SAS, AFR).
-- --maf: A float value indicating the minor allele frequency (MAF) threshold.
-- --ref: A string indicating the LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map)
+- --file-path: The path to the input file containing SNP data. The file should be in tab-separated format (TSV,TXT) 
+- --r2threshold: A float value specifying the R2 threshold for LD filtering 
+- --pop: A string indicating the population code to use for LD calculations (EUR, EAS, SAS, AFR) 
+- --maf: A float value indicating the minor allele frequency (MAF) threshold
+- --ref: A string indicating the LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map, all_panels)
+- --imp_list: A filename (.txt) to define SNPs to impute (each SNP has a new line, no header)
 
 ## Usage
 To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Here is an example command:
