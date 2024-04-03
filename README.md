@@ -32,6 +32,7 @@ The following table lists the populations included in the HapMap project, along 
 
 The following table outlines the population symbols as recognized by Pheno Scanner and TOP-LD:
 <div align="center">
+ 
 | Population | Symbol |
 |------------|--------|
 | Americans (Only in Pheno Scanner) | AMR |
@@ -39,6 +40,7 @@ The following table outlines the population symbols as recognized by Pheno Scann
 | East Asians | EAS |
 | Europeans | EUR |
 | Africans | AFR |
+
 <div align="left">
 
 ## Installation guide
