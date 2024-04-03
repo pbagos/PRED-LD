@@ -1,7 +1,9 @@
 # PRED-LD
 PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD statistics
  
-
+## WEb tool
+[https://rs.dib.uth.gr/PRED_LD/
+](https://rs.dib.uth.gr/PRED_LD/)
 ## Installation guide
 PRED-LD is written in Python (ver. 3.8.2)
 
