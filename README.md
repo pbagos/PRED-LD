@@ -4,6 +4,39 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
 ## Web tool
 [https://rs.dib.uth.gr/PRED_LD/
 ](https://rs.dib.uth.gr/PRED_LD/)
+# Population Data Overview
+
+This document provides an overview of various population symbols used in genetic research, specifically listing populations included in the HapMap project and those referenced by Pheno Scanner and TOP-LD tools.
+
+## HapMap Populations
+
+The following table lists the populations included in the HapMap project, along with their symbols:
+
+| Population | Symbol |
+|------------|--------|
+| Yoruba in Ibadan, Nigeria | YRI |
+| Han Chinese in Beijing, China | CHB |
+| Japanese in Tokyo, Japan | JPT |
+| CEPH/Utah Collection (NIGMS Human Genetic Cell Repository) | CEU |
+| Maasai in Kinyawa, Kenya | MKK |
+| Luhya in Webuye, Kenya | LWK |
+| Chinese in Metropolitan Denver, CO, USA | CHD |
+| Gujarati Indians in Houston, TX, USA | GIH |
+| Toscani in Italia | TSI |
+| Mexican Ancestry in LA, CA, USA | MXL |
+| African Ancestry in SW USA | ASW |
+
+## Pheno Scanner and TOP-LD Populations
+
+The following table outlines the population symbols as recognized by Pheno Scanner and TOP-LD, noting that the "Americans" population is exclusive to Pheno Scanner:
+
+| Population | Symbol |
+|------------|--------|
+| Americans (Only in Pheno Scanner) | AMR |
+| South Asians | SAS |
+| East Asians | EAS |
+| Europeans | EUR |
+| Africans | AFR |
 
 ## Installation guide
 PRED-LD is written in Python (ver. 3.8.2)
