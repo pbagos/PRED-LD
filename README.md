@@ -10,7 +10,6 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
 ## HapMap Populations
 
 The following table lists the populations included in the HapMap project, along with their symbols:
-<div align="center">
  
 | Population | Symbol |
 |------------|--------|
@@ -26,12 +25,10 @@ The following table lists the populations included in the HapMap project, along 
 | Mexican Ancestry in LA, CA, USA | MXL |
 | African Ancestry in SW USA | ASW |
  
-<div align="left">
  
 ## Pheno Scanner and TOP-LD Populations
 
 The following table outlines the population symbols as recognized by Pheno Scanner and TOP-LD:
-<div align="center">
  
 | Population | Symbol |
 |------------|--------|
@@ -41,8 +38,7 @@ The following table outlines the population symbols as recognized by Pheno Scann
 | Europeans | EUR |
 | Africans | AFR |
 
-<div align="left">
-
+ 
 ## Installation guide
 PRED-LD is written in Python (ver. 3.8.2)
 
