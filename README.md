@@ -32,7 +32,7 @@ PRED-LD accepts the following command-line arguments:
 - --pop: A string indicating the population code to use for LD calculations (EUR, EAS, SAS, AFR) 
 - --maf: A float value indicating the minor allele frequency (MAF) threshold
 - --ref: A string indicating the LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map, all_panels)
-- --imp_list: A filename (.txt) to define SNPs to impute (each SNP has a new line, no header)
+- --imp_list: A filename (.txt) to define specific rsIDs to impute (each SNP has a new line, no header)
 
 ## Usage
 To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Here is an example command:
@@ -40,7 +40,17 @@ To run PRED-LD, navigate to the directory containing the script and execute it w
 python pred_ld.py --file-path /path/to/your/data.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref ref_folder_containing_LD_statistics
 ````
 
-## Example
+## Example 1 (Simple Imputation)
 ```` 
 python pred_ld.py --file-path PRED_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref Pheno_Scanner
+````
+
+## Example 2 (Use a list to impute specific rsIDs)
+```` 
+python pred_ld.py --file-path PRED_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref Pheno_Scanner --imp_list missing_snps.txt 
+````
+
+## Example 3 (Use all panels to perform Imputation)
+```` 
+python pred_ld.py --file-path PRED_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref all_panels 
 ````
