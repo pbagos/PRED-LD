@@ -4,10 +4,9 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
 ## Web tool
 [https://rs.dib.uth.gr/PRED_LD/
 ](https://rs.dib.uth.gr/PRED_LD/)
+<div align="center">
 # Population Data Overview
-
-This document provides an overview of various population symbols used in genetic research, specifically listing populations included in the HapMap project and those referenced by Pheno Scanner and TOP-LD tools.
-
+ 
 ## HapMap Populations
 
 The following table lists the populations included in the HapMap project, along with their symbols:
