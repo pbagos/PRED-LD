@@ -4,7 +4,7 @@ import pandas as pd
 
 
 def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
-    print(f"Loading Hap Map files ({population})...")
+    print(f"Loading Hap Map files ({population}) ...")
 
     if population not in ['YRI', 'CHB', 'JPT', 'CEU', 'MKK', 'LWK', 'CHD', 'GIH', "TSI", 'MEX', "ASW"]:
         print("This population is not available in HapMap files. Please select a different population...")
@@ -72,7 +72,7 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
     # print(outputData.head())
     outputData = outputData.drop(['snp'], axis=1)
 
-    outputData['missing'] = 0
+    outputData['imputed'] = 0
     #print(outputData.head())
     outputData = outputData.groupby('rsID2').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
 
@@ -111,9 +111,9 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
     out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
-    out_df['missing'] = 1
+    out_df['imputed'] = 1
     out_df['R2'] = r2_value
-    print(f"Imputed : {sum(out_df['missing'])} SNPs in chromosome " + str(chromosome))
+    print(f"Imputed : {sum(out_df['imputed'])} SNPs in chromosome " + str(chromosome))
     # print(out_df.head())
     return out_df
 
@@ -166,7 +166,8 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
     if final_result.empty:
         print("No SNPs found")
         exit()
-
+    final_result['pos1(hg19)'] = final_result['pos1(hg19)'].str.split(':').str[1]
+    final_result['pos2(hg19)'] = final_result['pos2(hg19)'].str.split(':').str[1]
     final_result.reset_index(inplace=True, drop=True)
     final_result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
 
@@ -185,7 +186,7 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
         columns={"rsID2": "rsID1", "rsID1": "rsID2", "MAF1": "MAF2", "MAF2": "MAF1", "pos1(hg19)": "pos2(hg19)",
                  "pos2(hg19)": "pos1(hg19)"})
 
-    outputData['missing'] = 0
+    outputData['imputed'] = 0
     # print(outputData.head())
     outputData = outputData.groupby('rsID2').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
 
@@ -222,10 +223,10 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
-    out_df['missing'] = 1
+    out_df['imputed'] = 1
     out_df['R2'] = r2_value
 
-    print(f"Imputed : {sum(out_df['missing'])} SNPs in chromosome " + str(chromosome))
+    print(f"Imputed : {sum(out_df['imputed'])} SNPs in chromosome " + str(chromosome))
     # print(out_df.head())
     return out_df
 
@@ -274,13 +275,14 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
 
 def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome, imp_snp_list):
     # Fetch LD info data
+
     outputData = TOP_LD_info(list(study_df['snp']), chromosome, population, maf_input, r2threshold, imp_snp_list)
 
     outputData = pd.merge(outputData, study_df, left_on='rsID1', right_on='snp', how='left')
 
     outputData = outputData.drop(['snp', 'pos'], axis=1)
 
-    outputData['missing'] = 0
+    outputData['imputed'] = 0
     outputData = outputData.groupby('rsID2').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
 
     out_df = pd.DataFrame({
@@ -319,10 +321,10 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome, imp
     out_df['beta'] = np.log(OR_m)
     out_df['SE'] = np.sqrt(Var_M)
     out_df['z'] = out_df['beta'] / out_df['SE']
-    out_df['missing'] = 1
+    out_df['imputed'] = 1
     out_df['R2'] = r2_value
 
-    print(f"Imputed : {sum(out_df['missing'])} SNPs in chromosome " + str(chromosome))
+    print(f"Imputed : {sum(out_df['imputed'])} SNPs in chromosome " + str(chromosome))
 
     return out_df
 
@@ -336,8 +338,8 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
     # Check if all required columns are present
     required_columns = ['snp', 'chr', 'pos', 'beta', 'SE']  # The required order of columns
 
-    missing_columns = [col for col in required_columns if col not in required_columns]
-    if missing_columns:
+    imputed_columns = [col for col in required_columns if col not in required_columns]
+    if imputed_columns:
         raise ValueError(
             f" Warning: Check the column names! The columns must be in the following order: snp, chr, pos, beta, SE")
 
@@ -348,7 +350,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
-            data['missing'] = 0
+            data['imputed'] = 0
 
             final_data = pd.concat([final_data, data], ignore_index=True)
             print(f"Total : {len(final_data)} SNPs")
@@ -360,9 +362,9 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
-            # Separate the DataFrame into two based on the 'missing' column.
-            final_df_miss = final_df[final_df['missing'] == 1]
-            final_df_init = final_df[final_df['missing'] == 0]
+            # Separate the DataFrame into two based on the 'imputed' column.
+            final_df_miss = final_df[final_df['imputed'] == 1]
+            final_df_init = final_df[final_df['imputed'] == 0]
 
             # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
             final_df_init = final_df_init.drop_duplicates(subset="snp")
@@ -378,7 +380,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
-            data['missing'] = 0
+            data['imputed'] = 0
 
             final_data = pd.concat([final_data, data], ignore_index=True)
             print(f"Total : {len(final_data)} SNPs")
@@ -390,9 +392,9 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
-            # Separate the DataFrame into two based on the 'missing' column.
-            final_df_miss = final_df[final_df['missing'] == 1]
-            final_df_init = final_df[final_df['missing'] == 0]
+            # Separate the DataFrame into two based on the 'imputed' column.
+            final_df_miss = final_df[final_df['imputed'] == 1]
+            final_df_init = final_df[final_df['imputed'] == 0]
 
             # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
             final_df_init = final_df_init.drop_duplicates(subset="snp")
@@ -408,7 +410,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
-            data['missing'] = 0
+            data['imputed'] = 0
 
             final_data = pd.concat([final_data, data], ignore_index=True)
             print(f"Total : {len(final_data)} SNPs")
@@ -420,9 +422,9 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
-            # Separate the DataFrame into two based on the 'missing' column.
-            final_df_miss = final_df[final_df['missing'] == 1]
-            final_df_init = final_df[final_df['missing'] == 0]
+            # Separate the DataFrame into two based on the 'imputed' column.
+            final_df_miss = final_df[final_df['imputed'] == 1]
+            final_df_init = final_df[final_df['imputed'] == 0]
 
             # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
             final_df_init = final_df_init.drop_duplicates(subset="snp")
@@ -441,13 +443,13 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             if population == 'EUR':
                    
                     pop_hm = "CEU" 
-                    final_data_hm_CEU  = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    final_data_hm  = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
                     
-                    pop_hm = "TSI" 
-                    final_data_hm_TSI = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    # pop_hm = "TSI" 
+                    # final_data_hm_TSI = Hap_Map_process(study_df, r2threshold, pop_hm , maf_input, chrom, imp_snp_list)
+                    # 
                     
-                    
-                    final_data_hm = pd.concat([final_data_hm_CEU, final_data_hm_TSI])
+                    #final_data_hm = pd.concat([final_data_hm_CEU, final_data_hm_TSI])
                     # Keep the largest R2 value if a snp is common in any of the panels
                     final_data_hm = final_data_hm.groupby('snp').apply(lambda x: x.loc[x['R2'].idxmax()]).reset_index(drop=True)
                   
@@ -513,11 +515,11 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
 
             data = pd.read_csv(file_path, sep="\t")
             data['z'] = data['beta'] / data['SE']
-            data['missing'] = 0
+            data['imputed'] = 0
             data['source'] = 'GWAS'
             final_data = pd.concat([final_data, data], ignore_index=True)
 
-            print(f"Total Imputed SNPs: {len(final_data[final_data['missing'] == 1])} SNPs")
+            print(f"Total Imputed SNPs: {len(final_data[final_data['imputed'] == 1])} SNPs")
 
             print(f"Total : {len(final_data)} SNPs")
 
@@ -528,9 +530,9 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
-            # Separate the DataFrame into two based on the 'missing' column.
-            final_df_miss = final_df[final_df['missing'] == 1]
-            final_df_init = final_df[final_df['missing'] == 0]
+            # Separate the DataFrame into two based on the 'imputed' column.
+            final_df_miss = final_df[final_df['imputed'] == 1]
+            final_df_init = final_df[final_df['imputed'] == 0]
 
             # Remove duplicates in the 'final_df_init' DataFrame based on the 'snp' column.
             final_df_init = final_df_init.drop_duplicates(subset="snp")
