@@ -28,7 +28,7 @@ The following table lists the populations included in the HapMap project, along 
 
 ## Pheno Scanner and TOP-LD Populations
 
-The following table outlines the population symbols as recognized by Pheno Scanner and TOP-LD, noting that the "Americans" population is exclusive to Pheno Scanner:
+The following table outlines the population symbols as recognized by Pheno Scanner and TOP-LD:
 
 | Population | Symbol |
 |------------|--------|
