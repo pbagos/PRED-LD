@@ -7,7 +7,7 @@ Web tool available at : [https://rs.dib.uth.gr/PRED_LD/
 
 # LD resources 
 ## HapMap
-[HapMap LD Data] (https://ftp.ncbi.nlm.nih.gov/hapmap/ld_data/latest/)
+[HapMap LD Data](https://ftp.ncbi.nlm.nih.gov/hapmap/ld_data/latest/)
 [HapMap frequencies](https://ftp.ncbi.nlm.nih.gov/hapmap/frequencies/latest_phaseIII_ncbi_b36/fwd_strand/non-redundant/)
 
 ## Pheno Scanner 
