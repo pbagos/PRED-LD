@@ -9,16 +9,16 @@ Web tool available at : [https://rs.dib.uth.gr/PRED_LD/
 [Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=drive_link)
 
 
-# LD resources 
-## HapMap
+## LD resources 
+### HapMap
 [HapMap LD Data](https://ftp.ncbi.nlm.nih.gov/hapmap/ld_data/latest/)
 
 [HapMap frequencies](https://ftp.ncbi.nlm.nih.gov/hapmap/frequencies/latest_phaseIII_ncbi_b36/fwd_strand/non-redundant/)
 
-## Pheno Scanner 
+### Pheno Scanner 
 [Pheno Scanner database](http://www.phenoscanner.medschl.cam.ac.uk/)
 
-## TOP-LD
+### TOP-LD
 [TOP-LD data](http://topld.genetics.unc.edu/downloads/downloads/)
 
 
