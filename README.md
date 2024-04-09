@@ -72,7 +72,7 @@ PRED-LD is written in Python (ver. 3.8.2)
 
 5)	To install the mentioned requirements with pip, open a terminal/command prompt and run:
     ```
-    pip install -r /path/to/requirements.txt
+    pip install -r  requirements.txt
     ```
     
 ## Arguments
