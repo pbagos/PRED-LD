@@ -4,7 +4,21 @@ PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD s
 ## Web tool
 Web tool available at : [https://rs.dib.uth.gr/PRED_LD/
 ](https://rs.dib.uth.gr/PRED_LD/) or [195.251.108.211:3839/PRED_LD](http://195.251.108.211:3839/PRED_LD/)
- 
+
+# LD resources 
+## HapMap
+[HapMap LD Data] (https://ftp.ncbi.nlm.nih.gov/hapmap/ld_data/latest/)
+[HapMap frequencies](https://ftp.ncbi.nlm.nih.gov/hapmap/frequencies/latest_phaseIII_ncbi_b36/fwd_strand/non-redundant/)
+
+## Pheno Scanner 
+[Pheno Scanner database](http://www.phenoscanner.medschl.cam.ac.uk/)
+
+## TOP-LD
+[TOP-LD data](http://topld.genetics.unc.edu/downloads/downloads/)
+
+# Demo LD reference panel (Download before running PRED-LD)
+[Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=drive_link)
+
 # Population Data Overview
  
 ## HapMap Populations
