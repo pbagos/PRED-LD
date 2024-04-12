@@ -100,8 +100,9 @@ Your input data should be in a tab-separated text file (TXT format). Ensure the 
 | rs4428101 | 22| 17118747| -0.22| 0.13|
 
 
-To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Make sure you have unzipped in the same working directory the ref folder.Demo LD reference panel (Download before running PRED-LD)
-[Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=drive_link)
+To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Make sure you have unzipped in the same working directory the ref folder. [Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=drive_link) (Download before running PRED-LD)
+
+
 Here is an example command:
 ```` 
 python pred_ld.py --file-path /path/to/your/data.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref ref_panel
