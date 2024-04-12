@@ -58,7 +58,7 @@ def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold
         exit()
 
     final_result.reset_index(inplace=True, drop=True)
-    final_result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
+    final_result.to_csv('LD_info_Hap_Map_chr' + str(chrom) + '.txt', sep="\t", index=False)
     return final_result
 
 
@@ -169,7 +169,7 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
     final_result['pos1(hg19)'] = final_result['pos1(hg19)'].str.split(':').str[1]
     final_result['pos2(hg19)'] = final_result['pos2(hg19)'].str.split(':').str[1]
     final_result.reset_index(inplace=True, drop=True)
-    final_result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
+    final_result.to_csv('LD_info_Pheno_Scanner_chr' + str(chrom) + '.txt', sep="\t", index=False)
 
     return final_result
 
@@ -269,7 +269,7 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
         exit()
 
     result.reset_index(inplace=True, drop=True)
-    result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
+    result.to_csv('LD_info_TOP_LD_chr' + str(chrom) + '.txt', sep="\t", index=False)
     return result
 
 
@@ -358,7 +358,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+            print("Check 'LD_info_TOP_LD_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -388,7 +388,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+            print("Check 'LD_info_Pheno_Scanner_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -418,7 +418,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+            print("Check 'LD_info_Hap_Map_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -526,7 +526,11 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
+
+            #Read all_LD_info_files together
+
+
+            print("Check  all the LD_info.txt  files for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
