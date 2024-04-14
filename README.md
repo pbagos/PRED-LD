@@ -106,17 +106,17 @@ To run PRED-LD, navigate to the directory containing the script and execute it w
 
 Here is an example command:
 ```` 
-python pred_ld.py --file-path /path/to/your/data.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref ref_panel
+python pred_ld.py --file-path /path/to/your/data.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref TOP_LD
 ````
 
 ### Example 1 (Simple Imputation)
 ```` 
-python pred_ld.py --file-path PRED_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref Pheno_Scanner
+python pred_ld.py --file-path PRED_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref TOP_LD
 ````
 
 ### Example 2 (Use a list to impute specific rsIDs)
 ```` 
-python pred_ld.py --file-path PRED_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref Pheno_Scanner --imp_list missing_snps.txt 
+python pred_ld.py --file-path PRED_LD_demo.txt --r2threshold 0.8 --pop EUR --maf 0.01 --ref TOP_LD --imp_list missing_snps.txt 
 ````
 
 ### Example 3 (Use all panels to perform Imputation)
