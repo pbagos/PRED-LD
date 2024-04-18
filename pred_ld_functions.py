@@ -2,7 +2,6 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 
-
 def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     print(f"Loading Hap Map files ({population}) ...")
 
@@ -44,7 +43,7 @@ def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold
     merged_df = dd.merge(ld_df, maf_df, left_on='rsID1', right_on='rsID')
     merged_df = dd.merge(merged_df, maf_df, left_on='rsID2', right_on='rsID')
 
-    merged_df = merged_df[['pos1', 'pos2', 'rsID1', 'rsID2', 'MAF_x', "MAF_y", "R2"]]
+    merged_df = merged_df[['pos1', 'pos2', 'rsID1', 'rsID2', 'MAF_x', "MAF_y", "R2","Dprime"]]
     merged_df = merged_df.rename(columns={'MAF_x': 'MAF1', 'MAF_y': 'MAF2'})
 
     if imp_snp_list:
@@ -58,7 +57,7 @@ def Hap_Map_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold
         exit()
 
     final_result.reset_index(inplace=True, drop=True)
-    final_result.to_csv('LD_info_Hap_Map_chr' + str(chrom) + '.txt', sep="\t", index=False)
+    final_result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
     return final_result
 
 
@@ -93,7 +92,28 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
     pM = 1 - outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
+    Dprime = outputData['Dprime']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
+
+
+    Dmax_neg_D = np.minimum(pa * pb, (1 - pa) * (1 - pb))
+    Dmax_pos_D = np.minimum(pa * (1 - pb), (1 - pa) * pb)
+
+    # Calculate the expressions
+    expr_neg = abs(Dprime - abs(D / Dmax_neg_D))
+    expr_pos = abs(Dprime - abs(D / Dmax_pos_D))
+
+    # Find the minimum expression for each element
+    min_expr = pd.DataFrame({'neg': expr_neg, 'pos': expr_pos}).min(axis=1)
+
+    # Check which elements meet the condition
+    condition = min_expr == expr_neg
+
+    # Update D where the condition is true
+    D[condition] = -D[condition]
+
+
+
     OR_t = np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
@@ -142,8 +162,8 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
     maf_df = maf_df[1 - maf_df[maf_pop] >= float(maf_threshold)]
 
     # Process LD DataFrame using Dask
-    ld_df = dd.read_csv(ld_file, sep='\s+', blocksize=None, usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2'],
-                        dtype={'r2': 'float64'})
+    ld_df = dd.read_csv(ld_file, sep='\s+', blocksize=None, usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2','dprime'],
+                        dtype={'r2': 'float64','dprime': 'float64'} )
     ld_df = ld_df[(ld_df['ref_rsid'] != ld_df['rsid']) & (ld_df['r2'] >= R2_threshold)]
 
     merged_df = dd.merge(ld_df, maf_df.rename(
@@ -156,7 +176,7 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
     final_result = final_result.rename(
         columns={'ref_rsid': 'rsID1', 'rsid': 'rsID2', 'ref_hg19_coordinates_x': 'pos1(hg19)',
                  'hg19_coordinates': 'pos2(hg19)', 'r2': 'R2'})
-    final_result = final_result[['rsID1', 'pos1(hg19)', 'rsID2', 'pos2(hg19)', 'R2', 'MAF1', 'MAF2']]
+    final_result = final_result[['rsID1', 'pos1(hg19)', 'rsID2', 'dprime','pos2(hg19)', 'R2', 'MAF1', 'MAF2']]
 
     if imp_snp_list:
         final_result = final_result[final_result['rsID2'].isin(rs_list) & final_result['rsID1'].isin(imp_snp_list)]
@@ -166,10 +186,11 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
     if final_result.empty:
         print("No SNPs found")
         exit()
+    # Split the 'location' column at ':' and keep the part after it
     final_result['pos1(hg19)'] = final_result['pos1(hg19)'].str.split(':').str[1]
     final_result['pos2(hg19)'] = final_result['pos2(hg19)'].str.split(':').str[1]
     final_result.reset_index(inplace=True, drop=True)
-    final_result.to_csv('LD_info_Pheno_Scanner_chr' + str(chrom) + '.txt', sep="\t", index=False)
+    final_result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
 
     return final_result
 
@@ -207,7 +228,25 @@ def pheno_Scanner_process(study_df, r2threshold, population, maf_input, chromoso
     pM = outputData['MAF2'].astype(float)
 
     r2_value = outputData['R2']
+    Dprime = outputData['dprime']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
+
+    Dmax_neg_D = np.minimum(pA * pB, (1 - pA) * (1 - pB))
+    Dmax_pos_D = np.minimum(pA * (1 - pB), (1 - pA) * pB)
+
+    # Calculate the expressions
+    expr_neg = abs(Dprime - abs(D / Dmax_neg_D))
+    expr_pos = abs(Dprime - abs(D / Dmax_pos_D))
+
+    # Find the minimum expression for each element
+    min_expr = pd.DataFrame({'neg': expr_neg, 'pos': expr_pos}).min(axis=1)
+
+    # Check which elements meet the condition
+    condition = min_expr == expr_neg
+
+    # Update D where the condition is true
+    D[condition] = -D[condition]
+
     OR_t = np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
@@ -245,7 +284,7 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
     maf_df = maf_df[maf_df['MAF'] >= maf_threshold]
 
     # Load LD DataFrame
-    ld_df = dd.read_csv(ld_file, blocksize=None, usecols=['SNP1', 'SNP2', 'R2'])
+    ld_df = dd.read_csv(ld_file, blocksize=None, usecols=['SNP1', 'SNP2', 'R2','Dprime'])
     ld_df = ld_df[ld_df['R2'] >= R2_threshold]
 
     # Merge operations
@@ -255,7 +294,7 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
     merged_df = dd.merge(merged_df, maf_df.rename(columns={'SNP': 'SNP2', 'rsID': 'rsID2', 'MAF': 'MAF2'}), on='SNP2')
 
     # Select and rename desired columns
-    final_df = merged_df[['SNP1', 'SNP2', 'R2', 'rsID1', 'rsID2', 'MAF1', 'MAF2']]
+    final_df = merged_df[['SNP1', 'SNP2', 'R2','Dprime', 'rsID1', 'rsID2', 'MAF1', 'MAF2']]
     final_df = final_df.rename(columns={'SNP1': 'pos1', 'SNP2': 'pos2'})
 
     if imp_snp_list:
@@ -269,7 +308,7 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
         exit()
 
     result.reset_index(inplace=True, drop=True)
-    result.to_csv('LD_info_TOP_LD_chr' + str(chrom) + '.txt', sep="\t", index=False)
+    result.to_csv('LD_info_chr' + str(chrom) + '.txt', sep="\t", index=False)
     return result
 
 
@@ -302,7 +341,25 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome, imp
     pM = 1 - outputData['MAF2']
 
     r2_value = outputData['R2']
+    Dprime = outputData['Dprime']
     D = np.sqrt(r2_value * (pA * pB * pa * pb))
+
+    Dmax_neg_D = np.minimum(pa*pb, (1-pa)*(1-pb))
+    Dmax_pos_D = np.minimum(pa*(1-pb), (1-pa)*pb)
+
+    # Calculate the expressions
+    expr_neg = abs(Dprime - abs(D / Dmax_neg_D))
+    expr_pos = abs(Dprime - abs(D / Dmax_pos_D))
+
+    # Find the minimum expression for each element
+    min_expr = pd.DataFrame({'neg': expr_neg, 'pos': expr_pos}).min(axis=1)
+
+    # Check which elements meet the condition
+    condition = min_expr == expr_neg
+
+    # Update D where the condition is true
+    D[condition] = -D[condition]
+
     OR_t = np.exp(outputData['beta'])
     var_x = outputData['SE']
     OR_m = 1 + ((D * (OR_t - 1)) / (pM * ((1 - pM) + (pT * (1 - pM) - D) * (OR_t - 1))))
@@ -327,6 +384,7 @@ def TOP_LD_process(study_df, r2threshold, population, maf_input, chromosome, imp
     print(f"Imputed : {sum(out_df['imputed'])} SNPs in chromosome " + str(chromosome))
 
     return out_df
+
 
 
 def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_snp_list):
@@ -358,7 +416,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_TOP_LD_chr" + str(chrom) + ".txt' for LD information")
+            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -388,7 +446,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_Pheno_Scanner_chr" + str(chrom) + ".txt' for LD information")
+            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -418,7 +476,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-            print("Check 'LD_info_Hap_Map_chr" + str(chrom) + ".txt' for LD information")
+            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
@@ -526,11 +584,7 @@ def process_data(file_path, r2threshold, population, maf_input, ref_file, imp_sn
             final_data.to_csv("imputation_results_chr" + str(chrom) + ".txt", sep="\t", index=False)
 
             print("Check 'imputation_results_chr" + str(chrom) + ".txt' for the results")
-
-            #Read all_LD_info_files together
-
-
-            print("Check  all the LD_info.txt  files for LD information")
+            print("Check 'LD_info_chr" + str(chrom) + ".txt' for LD information")
             final_results_list.append(final_data)
         if len(chroms) > 1:
             final_df = pd.concat(final_results_list)
