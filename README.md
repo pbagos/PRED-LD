@@ -2,7 +2,7 @@
 PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD statistics
  
 ## Web tool
-Web tool available at : [[https://rs.dib.uth.gr/PRED_LD/](https://compgen.dib.uth.gr/PRED_LD/)
+Web tool available at : [https://rs.dib.uth.gr/PRED_LD/](https://compgen.dib.uth.gr/PRED_LD/)(https://compgen.dib.uth.gr/PRED_LD/)
   or [195.251.108.211:3839/PRED_LD](http://195.251.108.211:3839/PRED_LD/)
 
 ## Demo LD reference panel (Download before running PRED-LD)
