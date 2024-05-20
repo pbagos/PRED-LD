@@ -140,7 +140,7 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
 
 def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     if R2_threshold < 0.8:
-        print ("Pheno Scanner data are with a R2 threshold >= 0.8. The R2 threshold will be set to 0.8")
+        print ("Pheno Scanner include data with a R2 threshold >= 0.8. The R2 threshold will be set to 0.8")
         R2_threshold = 0.8
         
     print("Loading Pheno Scanner files...")
