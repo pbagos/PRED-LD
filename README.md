@@ -64,7 +64,7 @@ PRED-LD is written in Python (ver. 3.8.2)
   git clone  https://github.com/gmanios/PRED-LD
   ```
 
-2)	After downloading the .zip folder of MAGE from GitHub, extract it to a working directory. 
+2)	After downloading the .zip folder of PRED-LD from GitHub, extract it to a working directory. 
 
 3)	Το install the requirements, pip needs to be installed. Download the script for pip, from: https://bootstrap.pypa.io/get-pip.py.
 
