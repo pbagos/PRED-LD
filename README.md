@@ -61,7 +61,7 @@ PRED-LD is written in Python (ver. 3.8.2)
 
 1)	Clone or download PRED-LD from: https://github.com/gmanios/PRED-LD 
   ```
-  git clone  https://github.com/gmanios/PRED-LD
+  git clone  https://github.com/pbagos/PRED-LD
   ```
 
 2)	After downloading the .zip folder of PRED-LD from GitHub, extract it to a working directory. 
