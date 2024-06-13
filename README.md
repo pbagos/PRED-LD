@@ -59,7 +59,7 @@ The following table outlines the population symbols as recognized by Pheno Scann
 ## Installation guide
 PRED-LD is written in Python (ver. 3.8.2)
 
-1)	Clone or download PRED-LD from: https://github.com/gmanios/PRED-LD 
+1)	Clone or download PRED-LD from: https://github.com/pbagos/PRED-LD 
   ```
   git clone  https://github.com/pbagos/PRED-LD
   ```
