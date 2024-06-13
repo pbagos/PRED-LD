@@ -140,9 +140,9 @@ def Hap_Map_process(study_df, r2threshold, population, maf_input, chromosome, im
 
 def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp_list):
     if R2_threshold < 0.8:
-        print ("Pheno Scanner include data with a R2 threshold >= 0.8. The R2 threshold will be set to 0.8")
+        print("Pheno Scanner include data with a R2 threshold >= 0.8. The R2 threshold will be set to 0.8")
         R2_threshold = 0.8
-        
+
     print("Loading Pheno Scanner files...")
 
     maf_file = 'ref/pheno_Scanner/1000G.txt'
@@ -159,11 +159,17 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
                          )
     maf_df = maf_df[(maf_df['chr'] == chrom) & (maf_df[maf_pop] != '-')]
     maf_df[maf_pop] = maf_df[maf_pop].astype(float)
-    maf_df = maf_df[1 - maf_df[maf_pop] >= float(maf_threshold)]
+
+    # Calculate the frequency of the second allele for each population
+    maf_df[str(maf_pop)+'2'] = 1 -  maf_df[maf_pop]
+
+    maf_df[maf_pop] = maf_df[[maf_pop, str(maf_pop)+'2']].min(axis=1)
+    maf_df = maf_df[ maf_df[maf_pop] >= float(maf_threshold)]
 
     # Process LD DataFrame using Dask
-    ld_df = dd.read_csv(ld_file, sep='\s+', blocksize=None, usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2','dprime'],
-                        dtype={'r2': 'float64','dprime': 'float64'} )
+    ld_df = dd.read_csv(ld_file, sep='\s+', blocksize=None,
+                        usecols=['ref_hg19_coordinates', 'ref_rsid', 'rsid', 'r2', 'dprime'],
+                        dtype={'r2': 'float64', 'dprime': 'float64'})
     ld_df = ld_df[(ld_df['ref_rsid'] != ld_df['rsid']) & (ld_df['r2'] >= R2_threshold)]
 
     merged_df = dd.merge(ld_df, maf_df.rename(
@@ -176,7 +182,7 @@ def pheno_Scanner_LD_info_dask(rs_list, chrom, population, maf_threshold, R2_thr
     final_result = final_result.rename(
         columns={'ref_rsid': 'rsID1', 'rsid': 'rsID2', 'ref_hg19_coordinates_x': 'pos1(hg19)',
                  'hg19_coordinates': 'pos2(hg19)', 'r2': 'R2'})
-    final_result = final_result[['rsID1', 'pos1(hg19)', 'rsID2', 'dprime','pos2(hg19)', 'R2', 'MAF1', 'MAF2']]
+    final_result = final_result[['rsID1', 'pos1(hg19)', 'rsID2', 'dprime', 'pos2(hg19)', 'R2', 'MAF1', 'MAF2']]
 
     if imp_snp_list:
         final_result = final_result[final_result['rsID2'].isin(rs_list) & final_result['rsID1'].isin(imp_snp_list)]
