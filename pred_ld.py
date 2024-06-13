@@ -15,7 +15,7 @@ def main():
     version = '1.0.0'
     print("---------------------------------------------------------------------------------")
     print("PRED-LD : GWAS Summary Statistics Imputation")
-    print("Version " + version + "; April 2024")
+    print("Version " + version + "; June 2024")
     print("Copyright (C) 2024 Pantelis Bagos")
     print("Freely distributed under the GNU General Public Licence (GPLv3)")
     print("---------------------------------------------------------------------------------")
