@@ -15,8 +15,8 @@ def main():
     version = '1.0.0'
     print("---------------------------------------------------------------------------------")
     print("PRED-LD : GWAS Summary Statistics Imputation")
-    print("Version " + version + "; June 2024")
-    print("Copyright (C) 2024 Pantelis Bagos")
+    print("Version " + version + "; January 2025")
+    print("Copyright (C) 2025 Pantelis Bagos")
     print("Freely distributed under the GNU General Public Licence (GPLv3)")
     print("---------------------------------------------------------------------------------")
 
@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--pop', type=str, required=True, help='Population')
 
     parser.add_argument('--maf', type=float, required=True, help='MAF input value')
-    parser.add_argument('--ref', type=str, required=True, help='LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map)')
+    parser.add_argument('--ref', type=str, required=False, help='LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map or all_panels)',default='all_panels')
     parser.add_argument('--imp_list', type=str, required=False,
                         help='A filename to define SNPs to impute (each SNP has a new line, no header)')
 

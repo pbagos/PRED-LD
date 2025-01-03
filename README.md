@@ -88,20 +88,24 @@ PRED-LD accepts the following command-line arguments:
 - --ref: A string indicating the LD Reference files (Pheno_Scanner, TOP_LD, Hap_Map, all_panels)
 - --imp_list: A filename (.txt) to define specific rsIDs to impute (each SNP has a new line, no header)
 
+
 ## Usage
 
-Your input data should be in a tab-separated text file (TXT format). Ensure the file contains the necessary SNP information and adheres to the specified format.
+Your input data should be in a tab-separated text file (TXT format). Ensure the file contains the necessary SNP information and adheres to the specified format:
 
+| snp       | chr | pos       | A1 | A2 | beta       | SE          |
+|-----------|-----|-----------|----|----|------------|-------------|
+| rs743749  | 22  | 37398195  | A  | G  | -0.006387442 | 9.898344223 |
+| rs9306493 | 22  | 45682425  | A  | G  | -0.015022874 | 9.594216875 |
+| rs739043  | 22  | 37645230  | G  | A  | -0.005243055 | 9.788226204 |
+| rs242885  | 22  | 34423169  | A  | G  | -0.019996628 | 9.449498344 |
+| rs5765043 | 22  | 45231883  | G  | A  | -0.007225636 | 9.599864029 |
+| rs9625200 | 22  | 27700318  | A  | G  |  0.007320953 | 9.914661823 |
+| rs17807317| 22  | 17680519  | C  | A  |  0.005180513 | 9.805693943 |
 
-| snp       | chr  | pos       | beta | SE  |
-|-----------|------|-----------|------|-----|
-| rs5747010 | 22 | 16855618| -0.02| 0.12|
-| rs5746647 | 22 | 17057138| 0.05 | 0.25|
-| rs5747988 | 22| 17073066| -0.17| 0.22|
-| rs5747999 | 22| 17075353| -0.07| 0.14|
-| rs2096537 | 22| 17094749| 0.27 | 0.15|
-| rs4428101 | 22| 17118747| -0.22| 0.13|
-
+**Notes:**
+- **A1**: Represents the Alternative allele (ALT).
+- **A2**: Represents the Reference allele (REF).
 
 To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Make sure you have unzipped in the same working directory the ref folder. [Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=drive_link) (Download before running PRED-LD)
 
