@@ -107,7 +107,7 @@ Your input data should be in a tab-separated text file (TXT format). Ensure the 
 - **A1**: Represents the Alternative allele (ALT).
 - **A2**: Represents the Reference allele (REF).
 
-To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Make sure you have unzipped in the same working directory the ref folder. [Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=drive_link) (Download before running PRED-LD)
+To run PRED-LD, navigate to the directory containing the script and execute it with the required arguments. Make sure you have unzipped in the same working directory the ref folder. [Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=sharing) (Download before running PRED-LD)
 
 ## Examples
 
