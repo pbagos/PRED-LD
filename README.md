@@ -6,7 +6,7 @@ Web tool available at :  [https://compgen.dib.uth.gr/PRED_LD/](https://compgen.d
   or [195.251.108.198:3839/PRED_LD](http://195.251.108.198:3839/PRED_LD/)
 
 ## Demo LD reference panel (Download before running PRED-LD)
-[Demo LD ref folder](https://drive.google.com/file/d/1mCpiDJZiO9XdBe-6Y0fbXGraF62QqFn5/view?usp=drive_link)
+[Demo LD ref folder](https://drive.google.com/file/d/1bqz87p0YfxblYrWbFjL4gcq-9fnH8DJP/view?usp=drive_link)
 
 
 ## LD resources 
