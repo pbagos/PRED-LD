@@ -124,13 +124,13 @@ Precomputed LD matrices : https://zenodo.org/records/10391372
 ```{text}
 time raiss --chrom chr1 --gwas ADHD --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
 
-time raiss --chrom chr1 --gwas UACR --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
+time raiss --chrom chr1 --gwas UACR --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold  0.000001 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
 
 time raiss --chrom chr1 --gwas GFREUR --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
 
 time raiss --chrom chr1 --gwas EP --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
 
-time raiss --chrom chr1 --gwas CAD --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 4 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
+time raiss --chrom chr1 --gwas CAD --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
 
 time raiss --chrom chr1 --gwas DLID --ld-folder ./ld/EAS --ref-folder ref/EAS/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix '.csv' 
 
