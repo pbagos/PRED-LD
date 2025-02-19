@@ -1,0 +1,2533 @@
+---
+title: "PRED-LD Table 6"
+author: "Georgios A. Manios"
+ 
+output: html_document
+---
+## Evaluation between the same number of SNPs (SSIMP DIST and PRED-LD)
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+# Imports
+library(readxl)
+library(readr)
+library(dplyr)
+
+
+
+# Initialize a list to store SNPs for each trait
+snp_storage <- list()
+
+# Function to calculate and analyze imputation results
+analyze_imputation <- function(true_file, imputed_file, trait_name, method_name, delim = "\t") {
+  
+  get_complement <- function(allele) {
+    case_when(
+      allele == "A" ~ "T",
+      allele == "T" ~ "A",
+      allele == "C" ~ "G",
+      allele == "G" ~ "C"
+    )
+  }
+  
+  # Read the "true" data
+  true_data <- read_delim(true_file, delim = delim, escape_double = FALSE, trim_ws = TRUE)
+  
+  # Read the "imputed" data
+  imputed_data <- read_delim(imputed_file, delim = delim, escape_double = FALSE, trim_ws = TRUE)
+  imputed_data <- na.omit(imputed_data)
+  snp_storage[[trait_name]] <<- nrow(imputed_data)
+  
+  # Filter for imputed rows with R2 ≥ 0.5
+  imputed_data <- imputed_data[imputed_data$imputed == 1 & imputed_data$R2 >= 0.5, ]
+  
+  # Calculate number of imputed SNPs
+  imputed_snps <- nrow(imputed_data)
+  
+  # Join data on "snp"
+  joined_data <- inner_join(true_data, imputed_data, by = "snp", suffix = c("_true", "_imp"))
+  
+  # Store SNPs for this trait
+  #snp_storage[[trait_name]] <<- joined_data$snp  # Use global assignment to store SNPs
+  
+  # Add complement alleles to the dataset
+  joined_data <- joined_data %>%
+    mutate(
+      REF_complement = get_complement(A2_imp),
+      ALT_complement = get_complement(A1_imp)
+    )
+  
+  # Modify z values
+  joined_data <- joined_data %>%
+    mutate(
+      z_true = case_when(
+        A1_imp == A1_true & A2_imp == A2_true ~ z_true,
+        A1_imp == A2_true & A2_imp == A1_true ~ -z_true,
+        ALT_complement == A1_true & REF_complement == A2_true ~ z_true,
+        ALT_complement == A2_true & REF_complement == A1_true ~ -z_true,
+        TRUE ~ NA_real_
+      )
+    )
+  
+  # Calculate coverage percentage
+  coverage <- (nrow(joined_data) / nrow(true_data)) * 100
+  
+  # Linear model for Z-scores
+  z_model <- lm(joined_data$z_imp ~ joined_data$z_true)
+  r2_z <- summary(z_model)$r.squared
+  
+  # Calculate -log10(p) values
+  joined_data <- joined_data %>%
+    mutate(
+      log10p_true = -log10(2 * (pnorm(-abs(z_true)))),
+      log10p_imp = -log10(2 * (pnorm(-abs(z_imp))))
+    )
+  
+  # Linear model for -log10(p)
+  log10p_model <- lm(joined_data$log10p_imp ~ joined_data$log10p_true)
+  r2_log10p <- summary(log10p_model)$r.squared
+  
+  # Return results as a dataframe row
+  return(data.frame(
+    Trait = trait_name,
+    Method = method_name,
+    Imputed_SNPs = imputed_snps,
+    R2_z = r2_z,
+    R2_log10p = r2_log10p,
+    Imputation_Percentage = coverage
+  ))
+}
+
+
+# Define datasets as a list of traits and corresponding file paths
+datasets_COMBINED <- list(
+  list(
+    true_file = "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_ADHD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "ADHD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_CAD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "CAD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_COLCANCER_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Colorectal_Cancer",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_DLID_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Double_Eyelid",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_EP_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Epilepsy",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFRAFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_AFR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_EUR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_UACR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "UACR",
+    method_name = "PRED_LD"
+  )
+)
+
+
+results_COMBINED <- do.call(rbind, lapply(datasets_COMBINED, function(dataset) {
+  analyze_imputation(
+    true_file = dataset$true_file,
+    imputed_file = dataset$imputed_file,
+    trait_name = dataset$trait_name,
+    method_name = dataset$method_name
+  )
+}))
+
+
+
+
+
+PRED_LD_results<-results_COMBINED
+
+desired_order <- c("ADHD", "UACR", "GFR_EUR", "GFR_AFR", "Epilepsy", 
+                   "Colorectal_Cancer", "Double_Eyelid", "CAD")
+
+# Reorder the dataframe
+PRED_LD_results <- PRED_LD_results %>%
+  mutate(Trait = factor(Trait, levels = desired_order)) %>%
+  arrange(Trait)
+
+ 
+ # Display results
+print(PRED_LD_results)
+mean(PRED_LD_results$R2_z)
+mean(PRED_LD_results$R2_log10p )
+mean(PRED_LD_results$Imputation_Percentage )
+
+# ADHD dataset
+ADHD <- read.delim(
+  "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# CAD dataset
+CAD <- read.delim(
+  "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Colorectal Cancer dataset
+Colorectal_Cancer <- read.delim(
+  "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Double Eyelid dataset
+Double_Eyelid <- read.delim(
+  "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Epilepsy dataset
+Epilepsy <- read.delim(
+  "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# GFR_AFR dataset
+GFR_AFR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# GFR_EUR dataset
+GFR_EUR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# UACR dataset
+UACR <- read.delim(
+  "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+
+
+
+
+
+#Read all DIST results
+DIST_ADHD <-read_delim("DIST/DIST_results/DIST_ADHD_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_CAD <-read_delim("DIST/DIST_results/DIST_CAD_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_C_CANCER <-read_delim("DIST/DIST_results/DIST_COL_CANCER_EAS_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_D_LID <-read_delim("DIST/DIST_results/DIST_D_LID_EAS_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_EP <-read_delim("DIST/DIST_results/DIST_EPILPESY_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_GFR_AFR <-read_delim("DIST/DIST_results/DIST_GFR_AFR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_GFR_EUR <-read_delim("DIST/DIST_results/DIST_GFR_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_UACR <-read_delim("DIST/DIST_results/DIST_UACR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+
+
+
+
+
+#FILTER DIST
+DIST_ADHD <- DIST_ADHD[DIST_ADHD$type == 0,]
+DIST_CAD <- DIST_CAD[DIST_CAD$type == 0,]
+DIST_C_CANCER <- DIST_C_CANCER[DIST_C_CANCER$type == 0,]
+DIST_D_LID <- DIST_D_LID[DIST_D_LID$type == 0,]
+DIST_EP <- DIST_EP[DIST_EP$type == 0,]
+DIST_GFR_AFR <- DIST_GFR_AFR[DIST_GFR_AFR$type == 0,]
+DIST_GFR_EUR <- DIST_GFR_EUR[DIST_GFR_EUR$type == 0,]
+DIST_UACR <- DIST_UACR[DIST_UACR$type == 0,]
+
+
+
+# Rename DIST datasets
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "a1"] <- "A2"
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "a2"] <- "A1"
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "rsid"] <- "snp"
+
+colnames(DIST_CAD)[colnames(DIST_CAD) == "a1"] <- "A2"
+colnames(DIST_CAD)[colnames(DIST_CAD) == "a2"] <- "A1"
+colnames(DIST_CAD)[colnames(DIST_CAD) == "rsid"] <- "snp"
+
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "a1"] <- "A2"
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "a2"] <- "A1"
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "rsid"] <- "snp"
+
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "a1"] <- "A2"
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "a2"] <- "A1"
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "rsid"] <- "snp"
+
+colnames(DIST_EP)[colnames(DIST_EP) == "a1"] <- "A2"
+colnames(DIST_EP)[colnames(DIST_EP) == "a2"] <- "A1"
+colnames(DIST_EP)[colnames(DIST_EP) == "rsid"] <- "snp"
+
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "a1"] <- "A2"
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "a2"] <- "A1"
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "rsid"] <- "snp"
+
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "a1"] <- "A2"
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "a2"] <- "A1"
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "rsid"] <- "snp"
+
+colnames(DIST_UACR)[colnames(DIST_UACR) == "a1"] <- "A2"
+colnames(DIST_UACR)[colnames(DIST_UACR) == "a2"] <- "A1"
+colnames(DIST_UACR)[colnames(DIST_UACR) == "rsid"] <- "snp"
+
+# Order by the "info" column and then select rows 1 through the value specified in snp_storage
+# for each corresponding dataset.
+
+# For ADHD
+DIST_ADHD <- DIST_ADHD[order(DIST_ADHD$info ,decreasing = TRUE), ]
+DIST_ADHD <- DIST_ADHD[1:snp_storage[["ADHD"]], ]
+
+# For CAD
+DIST_CAD <- DIST_CAD[order(DIST_CAD$info,decreasing = TRUE), ]
+DIST_CAD <- DIST_CAD[1:snp_storage[["CAD"]], ]
+
+# For Colorectal Cancer
+DIST_C_CANCER <- DIST_C_CANCER[order(DIST_C_CANCER$info,decreasing = TRUE), ]
+DIST_C_CANCER <- DIST_C_CANCER[1:snp_storage[["Colorectal_Cancer"]], ]
+
+# For Double Eyelid
+DIST_D_LID <- DIST_D_LID[order(DIST_D_LID$info,decreasing = TRUE), ]
+DIST_D_LID <- DIST_D_LID[1:snp_storage[["Double_Eyelid"]], ]
+
+# For Epilepsy
+DIST_EP <- DIST_EP[order(DIST_EP$info,decreasing = TRUE), ]
+DIST_EP <- DIST_EP[1:snp_storage[["Epilepsy"]], ]
+
+# For GFR_AFR
+DIST_GFR_AFR <- DIST_GFR_AFR[order(DIST_GFR_AFR$info,decreasing = TRUE), ]
+DIST_GFR_AFR <- DIST_GFR_AFR[1:snp_storage[["GFR_AFR"]], ]
+
+# For GFR_EUR
+DIST_GFR_EUR <- DIST_GFR_EUR[order(DIST_GFR_EUR$info,decreasing = TRUE), ]
+DIST_GFR_EUR <- DIST_GFR_EUR[1:snp_storage[["GFR_EUR"]], ]
+
+# For UACR
+DIST_UACR <- DIST_UACR[order(DIST_UACR$info,decreasing = TRUE), ]
+DIST_UACR <- DIST_UACR[1:snp_storage[["UACR"]], ]
+
+# Function to calculate and analyze imputation results
+analyze_imputation <- function(true_file, imputed_file, trait_name, method_name, delim = "\t") {
+  
+  get_complement <- function(allele) {
+    case_when(
+      allele == "A" ~ "T",
+      allele == "T" ~ "A",
+      allele == "C" ~ "G",
+      allele == "G" ~ "C",
+      
+    )
+  }
+  
+  
+  # Calculate number of imputed SNPs
+  imputed_snps <- nrow(imputed_data)
+  
+  # Join data on "snp"
+  joined_data <- inner_join(true_data, imputed_data, by = "snp", suffix = c("_true", "_imp"))
+  
+  
+  # Add complement alleles to the dataset
+  joined_data <- joined_data %>%
+    mutate(
+      REF_complement = get_complement(A2_imp),
+      ALT_complement = get_complement(A1_imp)
+    )
+  # Modify z values
+  joined_data <-joined_data %>%
+    mutate(
+      z_true = case_when(
+        A1_imp == A1_true & A2_imp == A2_true ~ -z_true,
+        A1_imp == A2_true & A2_imp == A1_true ~ z_true,
+        ALT_complement == A1_true & REF_complement == A2_true~ -z_true,
+        ALT_complement == A2_true & REF_complement == A1_true ~ z_true,
+        TRUE ~ NA_real_
+      )
+    )
+  
+  
+  
+  # Calculate coverage percentage
+  coverage <- (nrow(joined_data) / nrow(true_data)) * 100
+  
+  # Linear model for Z-scores
+  z_model <- lm(joined_data$z_imp ~ joined_data$z_true)
+  r2_z <- summary(z_model)$r.squared
+  
+  
+  # Calculate -log10(p) values
+  joined_data <- joined_data %>%
+    mutate(
+      log10p_true = -log10(2 * (pnorm(-abs(z_true)))),
+      log10p_imp = -log10(2 * (pnorm(-abs(z_imp))))
+    )
+  
+  # Linear model for -log10(p)
+  log10p_model <- lm(joined_data$log10p_imp ~ joined_data$log10p_true)
+  r2_log10p <- summary(log10p_model)$r.squared
+ 
+  # Return results as a dataframe row
+  return(data.frame(
+    Trait = trait_name,
+    Method = method_name,
+    Imputed_SNPs = imputed_snps,
+    R2_z = r2_z,
+    R2_log10p = r2_log10p,
+    Imputation_Percentage = coverage
+  ))
+}
+
+
+
+
+
+# List of datasets, imputed files, and their corresponding traits and methods
+datasets2 <- list(
+  list("ADHD", ADHD, DIST_ADHD, "DIST"),
+  
+  
+  list("CAD", CAD, DIST_CAD, "DIST"),
+  
+  list("Colorectal Cancer", Colorectal_Cancer, DIST_C_CANCER, "DIST"),
+  
+  
+  list("Double Eyelid", Double_Eyelid, DIST_D_LID, "DIST"),
+  
+  
+  list("Epilepsy", Epilepsy, DIST_EP, "DIST"),
+  
+  
+  list("GFR_AFR", GFR_AFR, DIST_GFR_AFR, "DIST"),
+  
+  
+  list("GFR_EUR", GFR_EUR, DIST_GFR_EUR, "DIST"),  
+  
+  
+  list("UACR", UACR, DIST_UACR, "DIST") 
+  
+)
+
+
+
+# Initialize an empty list to store the results as data frames for each dataset
+results_list_DIST <- list()
+
+# Loop through each dataset in the list
+for (dataset in datasets2) {
+  # Extract information from the dataset list:
+  trait <- dataset[[1]]         # e.g., "ADHD"
+  true_data <- dataset[[2]]     # the true data
+  imputed_data <- dataset[[3]]  # the imputed version of the data
+  method <- dataset[[4]]        # e.g., "DIST"
+  
+  # Run the analysis function for the current dataset
+  result <- analyze_imputation(true_data, imputed_data, trait, method)
+  
+  # Optionally, add a column indicating the trait name (if not already included)
+  result$Trait <- trait
+  
+  # Store the result data frame in the list with the trait as its name
+  results_list_DIST[[trait]] <- result
+}
+
+# Combine all individual result data frames into one single data frame.
+# This uses do.call with rbind to stack the data frames vertically.
+results_df_DIST <- do.call(rbind, results_list_DIST)
+
+# Reset row names for cleanliness
+rownames(results_df_DIST) <- NULL
+
+
+
+desired_order <- c("ADHD", "UACR", "GFR_EUR", "GFR_AFR", "Epilepsy", 
+                   "Colorectal Cancer", "Double Eyelid", "CAD")
+
+# Reorder the dataframe
+results_df_DIST <- results_df_DIST %>%
+  mutate(Trait = factor(Trait, levels = desired_order)) %>%
+  arrange(Trait)
+
+# Print the combined results data frame
+print(results_df_DIST)
+mean(results_df_DIST$Imputed_SNPs)
+mean(results_df_DIST$R2_z)
+mean(results_df_DIST$R2_log10p)
+mean(results_df_DIST$Imputation_Percentage)
+
+
+
+#Read all SSIMP results
+SSIMP_ADHD <-  read_delim("SSIMP/SSIMP_results/SSIMP_ADHD_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_CAD <-read_delim("SSIMP/SSIMP_results/SSIMP_CAD_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE) 
+SSIMP_C_CANCER <-  read_delim("SSIMP/SSIMP_results/SSIMP_COL_CANCER_EAS_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_D_LID <- read_delim("SSIMP/SSIMP_results/SSIMP_DLID_EAS_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_EP <-  read_delim("SSIMP/SSIMP_results/SSIMP_EPILEPSY_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_GFR_AFR <-  read_delim("SSIMP/SSIMP_results/SSIMP_GFR_AFR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_GFR_EUR <-  read_delim("SSIMP/SSIMP_results/SSIMP_GFR_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_UACR <-  read_delim("SSIMP/SSIMP_results/SSIMP_UACR_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+
+
+
+
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "Allele1"] <- "A2"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "Allele2"] <- "A1"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "z_imp"] <- "z"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "SNP"] <- "snp"
+
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "Allele1"] <- "A2"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "Allele2"] <- "A1"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "z_imp"] <- "z"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "SNP"] <- "snp"
+
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "Allele1"] <- "A2"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "Allele2"] <- "A1"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "z_imp"] <- "z"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "SNP"] <- "snp"
+
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "Allele1"] <- "A2"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "Allele2"] <- "A1"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "z_imp"] <- "z"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "SNP"] <- "snp"
+
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "Allele1"] <- "A2"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "Allele2"] <- "A1"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "z_imp"] <- "z"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "SNP"] <- "snp"
+
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "Allele1"] <- "A2"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "Allele2"] <- "A1"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "z_imp"] <- "z"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "SNP"] <- "snp"
+
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "Allele1"] <- "A2"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "Allele2"] <- "A1"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "z_imp"] <- "z"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "SNP"] <- "snp"
+
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "Allele1"] <- "A2"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "Allele2"] <- "A1"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "z_imp"] <- "z"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "SNP"] <- "snp"
+
+
+
+
+# For SSIMP datasets: filter by source and rename columns
+SSIMP_ADHD    <- SSIMP_ADHD[SSIMP_ADHD$source == 'SSIMP', ]
+SSIMP_CAD     <- SSIMP_CAD[SSIMP_CAD$source == 'SSIMP', ]
+SSIMP_C_CANCER<- SSIMP_C_CANCER[SSIMP_C_CANCER$source == 'SSIMP', ]
+SSIMP_D_LID   <- SSIMP_D_LID[SSIMP_D_LID$source == 'SSIMP', ]
+SSIMP_EP      <- SSIMP_EP[SSIMP_EP$source == 'SSIMP', ]
+SSIMP_GFR_AFR <- SSIMP_GFR_AFR[SSIMP_GFR_AFR$source == 'SSIMP', ]
+SSIMP_GFR_EUR <- SSIMP_GFR_EUR[SSIMP_GFR_EUR$source == 'SSIMP', ]
+SSIMP_UACR    <- SSIMP_UACR[SSIMP_UACR$source == 'SSIMP', ]
+
+
+ 
+
+
+
+SSIMP_ADHD <- SSIMP_ADHD[order(SSIMP_ADHD$r2.pred, decreasing = TRUE), ]
+SSIMP_ADHD <- SSIMP_ADHD[1:snp_storage[["ADHD"]], ]
+
+SSIMP_CAD <- SSIMP_CAD[order(SSIMP_CAD$r2.pred, decreasing = TRUE), ]
+SSIMP_CAD <- SSIMP_CAD[1:snp_storage[["CAD"]], ]
+
+SSIMP_C_CANCER <- SSIMP_C_CANCER[order(SSIMP_C_CANCER$r2.pred, decreasing = TRUE), ]
+SSIMP_C_CANCER <- SSIMP_C_CANCER[1:snp_storage[["Colorectal_Cancer"]], ]
+
+SSIMP_D_LID <- SSIMP_D_LID[order(SSIMP_D_LID$r2.pred, decreasing = TRUE), ]
+SSIMP_D_LID <- SSIMP_D_LID[1:snp_storage[["Double_Eyelid"]], ]
+
+SSIMP_EP <- SSIMP_EP[order(SSIMP_EP$r2.pred, decreasing = TRUE), ]
+SSIMP_EP <- SSIMP_EP[1:snp_storage[["Epilepsy"]], ]
+
+SSIMP_GFR_AFR <- SSIMP_GFR_AFR[order(SSIMP_GFR_AFR$r2.pred, decreasing = TRUE), ]
+SSIMP_GFR_AFR <- SSIMP_GFR_AFR[1:snp_storage[["GFR_AFR"]], ]
+
+SSIMP_GFR_EUR <- SSIMP_GFR_EUR[order(SSIMP_GFR_EUR$r2.pred, decreasing = TRUE), ]
+SSIMP_GFR_EUR <- SSIMP_GFR_EUR[1:snp_storage[["GFR_EUR"]], ]
+
+SSIMP_UACR <- SSIMP_UACR[order(SSIMP_UACR$r2.pred, decreasing = TRUE), ]
+SSIMP_UACR <- SSIMP_UACR[1:snp_storage[["UACR"]], ]
+
+
+ 
+# Function to calculate and analyze imputation results
+analyze_imputation <- function(true_file, imputed_file, trait_name, method_name, delim = "\t") {
+  
+  get_complement <- function(allele) {
+    case_when(
+      allele == "A" ~ "T",
+      allele == "T" ~ "A",
+      allele == "C" ~ "G",
+      allele == "G" ~ "C",
+      
+    )
+  }
+  
+  
+  # Calculate number of imputed SNPs
+  imputed_snps <- nrow(imputed_data)
+  
+  # Join data on "snp"
+  joined_data <- inner_join(true_data, imputed_data, by = "snp", suffix = c("_true", "_imp"))
+  
+  # Add complement alleles to the dataset
+  joined_data <- joined_data %>%
+    mutate(
+      REF_complement = get_complement(A2_imp),
+      ALT_complement = get_complement(A1_imp)
+    )
+  # Modify z values
+  joined_data <-joined_data %>%
+    mutate(
+      z_true = case_when(
+        A1_imp == A1_true & A2_imp == A2_true ~ -z_true,
+        A1_imp == A2_true & A2_imp == A1_true ~ z_true,
+        ALT_complement == A1_true & REF_complement == A2_true~ -z_true,
+        ALT_complement == A2_true & REF_complement == A1_true ~ z_true,
+        TRUE ~ NA_real_
+      )
+    )
+  
+  
+  
+  # Calculate coverage percentage
+  coverage <- (nrow(joined_data) / nrow(true_data)) * 100
+  
+  # Linear model for Z-scores
+  z_model <- lm(joined_data$z_imp ~ joined_data$z_true)
+  r2_z <- summary(z_model)$r.squared
+  
+  
+  # Calculate -log10(p) values
+  joined_data <- joined_data %>%
+    mutate(
+      log10p_true = -log10(2 * (pnorm(-abs(z_true)))),
+      log10p_imp = -log10(2 * (pnorm(-abs(z_imp))))
+    )
+  
+  # Linear model for -log10(p)
+  log10p_model <- lm(joined_data$log10p_imp ~ joined_data$log10p_true)
+  r2_log10p <- summary(log10p_model)$r.squared
+ 
+  
+  # Return results as a dataframe row
+  return(data.frame(
+    Trait = trait_name,
+    Method = method_name,
+    Imputed_SNPs = imputed_snps,
+    R2_z = r2_z,
+    R2_log10p = r2_log10p,
+    Imputation_Percentage = coverage
+  ))
+}
+
+
+
+
+# List of datasets, imputed files, and their corresponding traits and methods
+datasets <- list(
+  list("ADHD", ADHD, SSIMP_ADHD, "SSIMP"),
+  
+  
+  list("CAD", CAD, SSIMP_CAD, "SSIMP"),
+  
+  list("Colorectal Cancer", Colorectal_Cancer, SSIMP_C_CANCER, "SSIMP"),
+  
+  
+  list("Double Eyelid", Double_Eyelid, SSIMP_D_LID, "SSIMP"),
+  
+  
+  list("Epilepsy", Epilepsy, SSIMP_EP, "SSIMP"),
+  
+  
+  list("GFR_AFR", GFR_AFR, SSIMP_GFR_AFR, "SSIMP"),
+  
+  
+  list("GFR_EUR", GFR_EUR, SSIMP_GFR_EUR, "SSIMP"),
+  
+  
+  list("UACR", UACR, SSIMP_UACR, "SSIMP") 
+  
+)
+
+
+
+# Initialize an empty list to store the results as data frames for each dataset
+results_list_SSIMP <- list()
+
+# Loop through each dataset in the list
+for (dataset in datasets ) {
+  # Extract information from the dataset list:
+  trait <- dataset[[1]]         # e.g., "ADHD"
+  true_data <- dataset[[2]]     # the true data
+  imputed_data <- dataset[[3]]  # the imputed version of the data
+  method <- dataset[[4]]        # e.g., "DIST"
+  
+  # Run the analysis function for the current dataset
+  result <- analyze_imputation(true_data, imputed_data, trait, method)
+  
+  # Optionally, add a column indicating the trait name (if not already included)
+  result$Trait <- trait
+  
+  # Store the result data frame in the list with the trait as its name
+  results_list_SSIMP[[trait]] <- result
+}
+
+# Combine all individual result data frames into one single data frame.
+# This uses do.call with rbind to stack the data frames vertically.
+results_list_SSIMP <- do.call(rbind, results_list_SSIMP)
+
+# Reset row names for cleanliness
+rownames(results_list_SSIMP) <- NULL
+
+
+
+desired_order <- c("ADHD", "UACR", "GFR_EUR", "GFR_AFR", "Epilepsy", 
+                   "Colorectal Cancer", "Double Eyelid", "CAD")
+
+# Reorder the dataframe
+results_list_SSIMP <- results_list_SSIMP %>%
+  mutate(Trait = factor(Trait, levels = desired_order)) %>%
+  arrange(Trait)
+
+
+# Print the combined results data frame
+print(results_list_SSIMP)
+
+mean(results_list_SSIMP$Imputed_SNPs)
+
+mean(results_list_SSIMP$R2_z)
+mean(results_list_SSIMP$R2_log10p)
+mean(results_list_SSIMP$Imputation_Percentage)
+
+ 
+```
+
+
+ 
+
+## Evaluation between the common SNPs SSIMP and PRED-LD 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+# Imports
+library(readxl)
+library(readr)
+library(dplyr)
+
+
+# Define the list of datasets
+datasets_COMBINED <- list(
+  list(
+    true_file = "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_ADHD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "ADHD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_CAD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "CAD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_COLCANCER_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Colorectal_Cancer",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_DLID_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Double_Eyelid",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_EP_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Epilepsy",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFRAFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_AFR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_EUR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_UACR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "UACR",
+    method_name = "PRED_LD"
+  )
+)
+
+# Loop over each dataset and read the true file with read.delim
+for (dataset in datasets_COMBINED) {
+  
+  # Create a variable name of the form "PRED_LD_<trait_name>"
+  var_name <- paste0(dataset$method_name, "_", dataset$trait_name)
+  
+  # Read the file specified by 'true_file' (assuming a tab-delimited format)
+  data <- read.delim(dataset$imputed_file, header = TRUE, sep = "\t")
+  
+  # Dynamically assign the data frame to the variable in the global environment
+  assign(var_name, data, envir = .GlobalEnv)
+}
+
+# Optional: List all variables created that start with "PRED_LD_"
+print(ls(pattern = "^PRED_LD_"))
+
+
+
+# Define the trait names corresponding to your PRED-LD datasets
+traits <- c("ADHD", "CAD", "Colorectal_Cancer", "Double_Eyelid", 
+            "Epilepsy", "GFR_AFR", "GFR_EUR", "UACR")
+
+# Loop over each trait, filter the dataset, and update it in the global environment
+for (trait in traits) {
+  # Construct the variable name, e.g., "PRED_LD_ADHD"
+  var_name <- paste0("PRED_LD_", trait)
+  
+  # Retrieve the dataset using get()
+  dataset <- get(var_name)
+  
+  # Filter the dataset to retain only rows where imputed equals 1
+  dataset <- dataset[dataset$imputed == 1, ]
+  
+  # Update the dataset in the global environment using assign()
+  assign(var_name, dataset, envir = .GlobalEnv)
+  
+  # Optionally, print the number of rows for the dataset after filtering
+  cat(var_name, "rows:", nrow(dataset), "\n")
+}
+
+
+
+
+
+
+
+# ADHD dataset
+ADHD <- read.delim(
+  "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# CAD dataset
+CAD <- read.delim(
+  "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Colorectal Cancer dataset
+Colorectal_Cancer <- read.delim(
+  "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Double Eyelid dataset
+Double_Eyelid <- read.delim(
+  "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Epilepsy dataset
+Epilepsy <- read.delim(
+  "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# GFR_AFR dataset
+GFR_AFR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# GFR_EUR dataset
+GFR_EUR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# UACR dataset
+UACR <- read.delim(
+  "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+
+
+
+
+#Read all SSIMP results
+SSIMP_ADHD <-  read_delim("SSIMP/SSIMP_results/SSIMP_ADHD_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_CAD <-read_delim("SSIMP/SSIMP_results/SSIMP_CAD_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE) 
+SSIMP_C_CANCER <-  read_delim("SSIMP/SSIMP_results/SSIMP_COL_CANCER_EAS_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_D_LID <- read_delim("SSIMP/SSIMP_results/SSIMP_DLID_EAS_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_EP <-  read_delim("SSIMP/SSIMP_results/SSIMP_EPILEPSY_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_GFR_AFR <-  read_delim("SSIMP/SSIMP_results/SSIMP_GFR_AFR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_GFR_EUR <-  read_delim("SSIMP/SSIMP_results/SSIMP_GFR_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_UACR <-  read_delim("SSIMP/SSIMP_results/SSIMP_UACR_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+
+
+ 
+
+#FILTER SSIMP
+SSIMP_ADHD <- SSIMP_ADHD[SSIMP_ADHD$source == 'SSIMP',]
+SSIMP_CAD <- SSIMP_CAD[SSIMP_CAD$source == 'SSIMP',]
+SSIMP_C_CANCER <- SSIMP_C_CANCER[SSIMP_C_CANCER$source == 'SSIMP',]
+SSIMP_D_LID <- SSIMP_D_LID[SSIMP_D_LID$source == 'SSIMP',]
+SSIMP_EP <- SSIMP_EP[SSIMP_EP$source == 'SSIMP',]
+SSIMP_GFR_AFR <- SSIMP_GFR_AFR[SSIMP_GFR_AFR$source == 'SSIMP',]
+SSIMP_GFR_EUR <- SSIMP_GFR_EUR[SSIMP_GFR_EUR$source == 'SSIMP',]
+SSIMP_UACR <- SSIMP_UACR[SSIMP_UACR$source == 'SSIMP',]
+
+
+ 
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "Allele1"] <- "A2"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "Allele2"] <- "A1"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "z_imp"] <- "z"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "SNP"] <- "snp"
+
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "Allele1"] <- "A2"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "Allele2"] <- "A1"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "z_imp"] <- "z"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "SNP"] <- "snp"
+
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "Allele1"] <- "A2"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "Allele2"] <- "A1"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "z_imp"] <- "z"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "SNP"] <- "snp"
+
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "Allele1"] <- "A2"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "Allele2"] <- "A1"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "z_imp"] <- "z"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "SNP"] <- "snp"
+
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "Allele1"] <- "A2"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "Allele2"] <- "A1"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "z_imp"] <- "z"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "SNP"] <- "snp"
+
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "Allele1"] <- "A2"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "Allele2"] <- "A1"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "z_imp"] <- "z"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "SNP"] <- "snp"
+
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "Allele1"] <- "A2"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "Allele2"] <- "A1"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "z_imp"] <- "z"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "SNP"] <- "snp"
+
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "Allele1"] <- "A2"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "Allele2"] <- "A1"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "z_imp"] <- "z"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "SNP"] <- "snp"
+
+
+
+library(dplyr)
+
+# FILTER SSIMP and remove duplicate SNPs
+SSIMP_ADHD <- SSIMP_ADHD %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_CAD <- SSIMP_CAD %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_C_CANCER <- SSIMP_C_CANCER %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_D_LID <- SSIMP_D_LID %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_EP <- SSIMP_EP %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_GFR_AFR <- SSIMP_GFR_AFR %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_GFR_EUR <- SSIMP_GFR_EUR %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_UACR <- SSIMP_UACR %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+
+
+
+# Compute common SNPs among the three datasets (imputed, SSIMP, DIST) for each trait
+
+# ADHD
+ADHD_common_snps <- Reduce(intersect, list(PRED_LD_ADHD$snp, SSIMP_ADHD$snp ))
+cat("Number of common SNPs for ADHD:", length(ADHD_common_snps), "\n")
+
+# CAD
+CAD_common_snps <- Reduce(intersect, list(PRED_LD_CAD$snp, SSIMP_CAD$snp ))
+cat("Number of common SNPs for CAD:", length(CAD_common_snps), "\n")
+
+# Colorectal Cancer
+# Note: For Colorectal Cancer the SSIMP and DIST variables are named SSIMP_C_CANCER and DIST_C_CANCER.
+Colorectal_Cancer_common_snps <- Reduce(intersect, 
+                                        list(PRED_LD_Colorectal_Cancer$snp, SSIMP_C_CANCER$snp ))
+cat("Number of common SNPs for Colorectal Cancer:", length(Colorectal_Cancer_common_snps), "\n")
+
+# Double Eyelid
+# Note: For Double Eyelid the SSIMP and DIST variables are named SSIMP_D_LID and DIST_D_LID.
+Double_Eyelid_common_snps <- Reduce(intersect, 
+                                    list(PRED_LD_Double_Eyelid$snp, SSIMP_D_LID$snp ))
+cat("Number of common SNPs for Double Eyelid:", length(Double_Eyelid_common_snps), "\n")
+
+# Epilepsy
+Epilepsy_common_snps <- Reduce(intersect, list(PRED_LD_Epilepsy$snp, SSIMP_EP$snp ))
+cat("Number of common SNPs for Epilepsy:", length(Epilepsy_common_snps), "\n")
+
+# GFR_AFR
+GFR_AFR_common_snps <- Reduce(intersect, list(PRED_LD_GFR_AFR$snp, SSIMP_GFR_AFR$snp ))
+cat("Number of common SNPs for GFR_AFR:", length(GFR_AFR_common_snps), "\n")
+
+# GFR_EUR
+GFR_EUR_common_snps <- Reduce(intersect, list(PRED_LD_GFR_EUR$snp, SSIMP_GFR_EUR$snp ))
+cat("Number of common SNPs for GFR_EUR:", length(GFR_EUR_common_snps), "\n")
+
+# UACR
+UACR_common_snps <- Reduce(intersect, list(PRED_LD_UACR$snp, SSIMP_UACR$snp  ))
+cat("Number of common SNPs for UACR:", length(UACR_common_snps), "\n")
+
+ 
+
+################
+#---------------------------------------------------------------------
+# Subset ADHD datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+# For ADHD, we assume the common SNPs are stored in "ADHD_common_snps"
+PRED_LD_ADHD <- PRED_LD_ADHD[PRED_LD_ADHD$snp %in% ADHD_common_snps, ]
+SSIMP_ADHD   <- SSIMP_ADHD[SSIMP_ADHD$snp %in% ADHD_common_snps, ]
+ 
+#---------------------------------------------------------------------
+# Subset CAD datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_CAD <- PRED_LD_CAD[PRED_LD_CAD$snp %in% CAD_common_snps, ]
+SSIMP_CAD   <- SSIMP_CAD[SSIMP_CAD$snp %in% CAD_common_snps, ]
+ 
+cat("CAD - PRED_LD rows:", nrow(PRED_LD_CAD), "\n")
+cat("CAD - SSIMP rows:  ", nrow(SSIMP_CAD), "\n")
+ 
+
+#---------------------------------------------------------------------
+# Subset Colorectal Cancer datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Colorectal_Cancer <- PRED_LD_Colorectal_Cancer[PRED_LD_Colorectal_Cancer$snp %in% Colorectal_Cancer_common_snps, ]
+SSIMP_C_CANCER <- SSIMP_C_CANCER[SSIMP_C_CANCER$snp %in% Colorectal_Cancer_common_snps, ]
+  
+#---------------------------------------------------------------------
+# Subset Double Eyelid datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Double_Eyelid <- PRED_LD_Double_Eyelid[PRED_LD_Double_Eyelid$snp %in% Double_Eyelid_common_snps, ]
+SSIMP_D_LID <- SSIMP_D_LID[SSIMP_D_LID$snp %in% Double_Eyelid_common_snps, ]
+ 
+#---------------------------------------------------------------------
+# Subset Epilepsy datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Epilepsy <- PRED_LD_Epilepsy[PRED_LD_Epilepsy$snp %in% Epilepsy_common_snps, ]
+SSIMP_EP   <- SSIMP_EP[SSIMP_EP$snp %in% Epilepsy_common_snps, ]
+ 
+#---------------------------------------------------------------------
+# Subset GFR_AFR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_GFR_AFR <- PRED_LD_GFR_AFR[PRED_LD_GFR_AFR$snp %in% GFR_AFR_common_snps, ]
+SSIMP_GFR_AFR   <- SSIMP_GFR_AFR[SSIMP_GFR_AFR$snp %in% GFR_AFR_common_snps, ]
+ 
+#---------------------------------------------------------------------
+# Subset GFR_EUR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_GFR_EUR <- PRED_LD_GFR_EUR[PRED_LD_GFR_EUR$snp %in% GFR_EUR_common_snps, ]
+SSIMP_GFR_EUR   <- SSIMP_GFR_EUR[SSIMP_GFR_EUR$snp %in% GFR_EUR_common_snps, ]
+ 
+#---------------------------------------------------------------------
+# Subset UACR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_UACR <- PRED_LD_UACR[PRED_LD_UACR$snp %in% UACR_common_snps, ]
+SSIMP_UACR   <- SSIMP_UACR[SSIMP_UACR$snp %in% UACR_common_snps, ]
+ 
+
+
+
+
+
+
+
+
+# Function to calculate and analyze imputation results
+analyze_imputation <- function(true_file, imputed_file, trait_name, method_name, delim = "\t") {
+  
+  get_complement <- function(allele) {
+    case_when(
+      allele == "A" ~ "T",
+      allele == "T" ~ "A",
+      allele == "C" ~ "G",
+      allele == "G" ~ "C",
+      
+    )
+  }
+  
+  
+  # Calculate number of imputed SNPs
+  imputed_snps <- nrow(imputed_data)
+  
+  # Join data on "snp"
+  joined_data <- inner_join(true_data, imputed_data, by = "snp", suffix = c("_true", "_imp"))
+  
+  # Add complement alleles to the dataset
+  joined_data <- joined_data %>%
+    mutate(
+      REF_complement = get_complement(A2_imp),
+      ALT_complement = get_complement(A1_imp)
+    )
+  # Modify z values
+  joined_data <-joined_data %>%
+    mutate(
+      z_true = case_when(
+        A1_imp == A1_true & A2_imp == A2_true ~ -z_true,
+        A1_imp == A2_true & A2_imp == A1_true ~ z_true,
+        ALT_complement == A1_true & REF_complement == A2_true~ -z_true,
+        ALT_complement == A2_true & REF_complement == A1_true ~ z_true,
+        TRUE ~ NA_real_
+      )
+    )
+  
+  
+  
+  # Calculate coverage percentage
+  coverage <- (nrow(joined_data) / nrow(true_data)) * 100
+  
+  # Linear model for Z-scores
+  z_model <- lm(joined_data$z_imp ~ joined_data$z_true)
+  r2_z <- summary(z_model)$r.squared
+  
+  
+  # Calculate -log10(p) values
+  joined_data <- joined_data %>%
+    mutate(
+      log10p_true = -log10(2 * (pnorm(-abs(z_true)))),
+      log10p_imp = -log10(2 * (pnorm(-abs(z_imp))))
+    )
+  
+  # Linear model for -log10(p)
+  log10p_model <- lm(joined_data$log10p_imp ~ joined_data$log10p_true)
+  r2_log10p <- summary(log10p_model)$r.squared
+  # 
+  # # Create the scatter plot
+  # plot(
+  #   joined_data$z_true, joined_data$z_imp,
+  #   main = paste0(trait_name, " - ", method_name, " (R² = ", round(r2_z, 4), ")"),
+  #   xlab = "Actual z values",
+  #   ylab = "Imputed z values",
+  #   pch = 20,
+  #   col = 'black'
+  # )
+  # grid()
+  # abline(a = 0, b = 1, col = 'red', lwd = 2)
+  
+  # Return results as a dataframe row
+  return(data.frame(
+    Trait = trait_name,
+    Method = method_name,
+    Imputed_SNPs = imputed_snps,
+    R2_z = r2_z,
+    R2_log10p = r2_log10p,
+    Imputation_Percentage = coverage
+  ))
+}
+
+
+
+datasets <- list(
+  # SSIMP datasets
+  list("ADHD", ADHD, SSIMP_ADHD, "SSIMP"),
+  list("CAD", CAD, SSIMP_CAD, "SSIMP"),
+  list("Colorectal Cancer", Colorectal_Cancer, SSIMP_C_CANCER, "SSIMP"),
+  list("Double Eyelid", Double_Eyelid, SSIMP_D_LID, "SSIMP"),
+  list("Epilepsy", Epilepsy, SSIMP_EP, "SSIMP"),
+  list("GFR_AFR", GFR_AFR, SSIMP_GFR_AFR, "SSIMP"),
+  list("GFR_EUR", GFR_EUR, SSIMP_GFR_EUR, "SSIMP"),
+  list("UACR", UACR, SSIMP_UACR, "SSIMP"),
+  
+ 
+  # PRED-LD datasets
+  list("ADHD", ADHD, PRED_LD_ADHD, "PRED_LD"),
+  list("CAD", CAD, PRED_LD_CAD, "PRED_LD"),
+  list("Colorectal Cancer", Colorectal_Cancer, PRED_LD_Colorectal_Cancer, "PRED_LD"),
+  list("Double Eyelid", Double_Eyelid, PRED_LD_Double_Eyelid, "PRED_LD"),
+  list("Epilepsy", Epilepsy, PRED_LD_Epilepsy, "PRED_LD"),
+  list("GFR_AFR", GFR_AFR, PRED_LD_GFR_AFR, "PRED_LD"),
+  list("GFR_EUR", GFR_EUR, PRED_LD_GFR_EUR, "PRED_LD"),
+  list("UACR", UACR, PRED_LD_UACR, "PRED_LD")
+)
+
+# Initialize an empty dataframe to store the results
+results_df <- data.frame()
+
+# Loop through datasets and run the analyze_imputation function
+for (dataset in datasets) {
+  trait <- dataset[[1]]
+  true_data <- dataset[[2]]
+  imputed_data <- dataset[[3]]
+  method <- dataset[[4]]
+  
+  # Analyze the imputation
+  result <- analyze_imputation(true_data, imputed_data, trait, method)
+  
+  # Convert the result to a dataframe and append it to results_df
+  results_df <- rbind(results_df, as.data.frame(result))
+}
+
+
+
+# Define the desired trait order
+desired_order <- c("ADHD",
+                   "UACR",
+                   "GFR_EUR",
+                   "GFR_AFR",
+                   "Epilepsy",
+                   "Colorectal Cancer",
+                   "Double Eyelid",
+                   "CAD")
+
+
+# Convert 'Trait' into a factor with levels in the specified order
+results_df$Trait <- factor(results_df$Trait, levels = desired_order)
+
+# Order the dataframe by the Trait column (now a factor with our custom order)
+results_df <- results_df[order(results_df$Trait), ]
+
+# Print the ordered dataframe
+print(results_df)
+
+
+SSIMP_same_imp_SNPS <- results_df[results_df$Method=='SSIMP',]
+PRED_LD_same_imp_SNPS <- results_df[results_df$Method=='PRED_LD',]
+ 
+
+# View the results dataframe
+print(SSIMP_same_imp_SNPS)
+
+
+mean(SSIMP_same_imp_SNPS$Imputed_SNPs)
+
+mean(SSIMP_same_imp_SNPS$R2_z)
+mean(SSIMP_same_imp_SNPS$R2_log10p)
+mean(SSIMP_same_imp_SNPS$Imputation_Percentage)
+
+# View the results dataframe
+print(PRED_LD_same_imp_SNPS)
+
+
+mean(PRED_LD_same_imp_SNPS$Imputed_SNPs)
+
+mean(PRED_LD_same_imp_SNPS$R2_z)
+mean(PRED_LD_same_imp_SNPS$R2_log10p)
+mean(PRED_LD_same_imp_SNPS$Imputation_Percentage)
+
+ 
+
+```
+## Evaluation between the common SNPs DIST and PRED-LD 
+
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
+# Define the list of datasets
+datasets_COMBINED <- list(
+  list(
+    true_file = "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_ADHD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "ADHD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_CAD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "CAD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_COLCANCER_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Colorectal_Cancer",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_DLID_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Double_Eyelid",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_EP_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Epilepsy",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFRAFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_AFR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_EUR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_UACR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "UACR",
+    method_name = "PRED_LD"
+  )
+)
+
+# Loop over each dataset and read the true file with read.delim
+for (dataset in datasets_COMBINED) {
+  
+  # Create a variable name of the form "PRED_LD_<trait_name>"
+  var_name <- paste0(dataset$method_name, "_", dataset$trait_name)
+  
+  # Read the file specified by 'true_file' (assuming a tab-delimited format)
+  data <- read.delim(dataset$imputed_file, header = TRUE, sep = "\t")
+  
+  # Dynamically assign the data frame to the variable in the global environment
+  assign(var_name, data, envir = .GlobalEnv)
+}
+
+# Optional: List all variables created that start with "PRED_LD_"
+print(ls(pattern = "^PRED_LD_"))
+
+
+
+# Define the trait names corresponding to your PRED-LD datasets
+traits <- c("ADHD", "CAD", "Colorectal_Cancer", "Double_Eyelid", 
+            "Epilepsy", "GFR_AFR", "GFR_EUR", "UACR")
+
+# Loop over each trait, filter the dataset, and update it in the global environment
+for (trait in traits) {
+  # Construct the variable name, e.g., "PRED_LD_ADHD"
+  var_name <- paste0("PRED_LD_", trait)
+  
+  # Retrieve the dataset using get()
+  dataset <- get(var_name)
+  
+  # Filter the dataset to retain only rows where imputed equals 1
+  dataset <- dataset[dataset$imputed == 1, ]
+  
+  # Update the dataset in the global environment using assign()
+  assign(var_name, dataset, envir = .GlobalEnv)
+  
+  # Optionally, print the number of rows for the dataset after filtering
+  cat(var_name, "rows:", nrow(dataset), "\n")
+}
+
+
+
+
+
+
+
+# ADHD dataset
+ADHD <- read.delim(
+  "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# CAD dataset
+CAD <- read.delim(
+  "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Colorectal Cancer dataset
+Colorectal_Cancer <- read.delim(
+  "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Double Eyelid dataset
+Double_Eyelid <- read.delim(
+  "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Epilepsy dataset
+Epilepsy <- read.delim(
+  "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# GFR_AFR dataset
+GFR_AFR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# GFR_EUR dataset
+GFR_EUR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# UACR dataset
+UACR <- read.delim(
+  "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+
+
+
+
+
+#Read all DIST results
+DIST_ADHD <-read_delim("DIST/DIST_results/DIST_ADHD_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_CAD <-read_delim("DIST/DIST_results/DIST_CAD_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_C_CANCER <-read_delim("DIST/DIST_results/DIST_COL_CANCER_EAS_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_D_LID <-read_delim("DIST/DIST_results/DIST_D_LID_EAS_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_EP <-read_delim("DIST/DIST_results/DIST_EPILPESY_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_GFR_AFR <-read_delim("DIST/DIST_results/DIST_GFR_AFR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_GFR_EUR <-read_delim("DIST/DIST_results/DIST_GFR_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_UACR <-read_delim("DIST/DIST_results/DIST_UACR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+
+
+
+
+
+
+
+ 
+
+
+
+# Rename DIST datasets
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "a1"] <- "A2"
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "a2"] <- "A1"
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "rsid"] <- "snp"
+
+colnames(DIST_CAD)[colnames(DIST_CAD) == "a1"] <- "A2"
+colnames(DIST_CAD)[colnames(DIST_CAD) == "a2"] <- "A1"
+colnames(DIST_CAD)[colnames(DIST_CAD) == "rsid"] <- "snp"
+
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "a1"] <- "A2"
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "a2"] <- "A1"
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "rsid"] <- "snp"
+
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "a1"] <- "A2"
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "a2"] <- "A1"
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "rsid"] <- "snp"
+
+colnames(DIST_EP)[colnames(DIST_EP) == "a1"] <- "A2"
+colnames(DIST_EP)[colnames(DIST_EP) == "a2"] <- "A1"
+colnames(DIST_EP)[colnames(DIST_EP) == "rsid"] <- "snp"
+
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "a1"] <- "A2"
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "a2"] <- "A1"
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "rsid"] <- "snp"
+
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "a1"] <- "A2"
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "a2"] <- "A1"
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "rsid"] <- "snp"
+
+colnames(DIST_UACR)[colnames(DIST_UACR) == "a1"] <- "A2"
+colnames(DIST_UACR)[colnames(DIST_UACR) == "a2"] <- "A1"
+colnames(DIST_UACR)[colnames(DIST_UACR) == "rsid"] <- "snp"
+
+
+
+library(dplyr)
+
+# FILTER DIST and remove duplicate SNPs
+DIST_ADHD <- DIST_ADHD %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+DIST_CAD <- DIST_CAD %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+DIST_C_CANCER <- DIST_C_CANCER %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+DIST_D_LID <- DIST_D_LID %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+DIST_EP <- DIST_EP %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+DIST_GFR_AFR <- DIST_GFR_AFR %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+DIST_GFR_EUR <- DIST_GFR_EUR %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+DIST_UACR <- DIST_UACR %>% filter(type == 0) %>% distinct(snp, .keep_all = TRUE)
+
+
+
+# Compute common SNPs among the three datasets (imputed, DIST, DIST) for each trait
+
+# ADHD
+ADHD_common_snps <- Reduce(intersect, list(PRED_LD_ADHD$snp, DIST_ADHD$snp ))
+cat("Number of common SNPs for ADHD:", length(ADHD_common_snps), "\n")
+
+# CAD
+CAD_common_snps <- Reduce(intersect, list(PRED_LD_CAD$snp, DIST_CAD$snp ))
+cat("Number of common SNPs for CAD:", length(CAD_common_snps), "\n")
+
+# Colorectal Cancer
+# Note: For Colorectal Cancer the DIST and DIST variables are named DIST_C_CANCER and DIST_C_CANCER.
+Colorectal_Cancer_common_snps <- Reduce(intersect, 
+                                        list(PRED_LD_Colorectal_Cancer$snp, DIST_C_CANCER$snp ))
+cat("Number of common SNPs for Colorectal Cancer:", length(Colorectal_Cancer_common_snps), "\n")
+
+# Double Eyelid
+# Note: For Double Eyelid the DIST and DIST variables are named DIST_D_LID and DIST_D_LID.
+Double_Eyelid_common_snps <- Reduce(intersect, 
+                                    list(PRED_LD_Double_Eyelid$snp, DIST_D_LID$snp ))
+cat("Number of common SNPs for Double Eyelid:", length(Double_Eyelid_common_snps), "\n")
+
+# Epilepsy
+Epilepsy_common_snps <- Reduce(intersect, list(PRED_LD_Epilepsy$snp, DIST_EP$snp ))
+cat("Number of common SNPs for Epilepsy:", length(Epilepsy_common_snps), "\n")
+
+# GFR_AFR
+GFR_AFR_common_snps <- Reduce(intersect, list(PRED_LD_GFR_AFR$snp, DIST_GFR_AFR$snp ))
+cat("Number of common SNPs for GFR_AFR:", length(GFR_AFR_common_snps), "\n")
+
+# GFR_EUR
+GFR_EUR_common_snps <- Reduce(intersect, list(PRED_LD_GFR_EUR$snp, DIST_GFR_EUR$snp ))
+cat("Number of common SNPs for GFR_EUR:", length(GFR_EUR_common_snps), "\n")
+
+# UACR
+UACR_common_snps <- Reduce(intersect, list(PRED_LD_UACR$snp, DIST_UACR$snp  ))
+cat("Number of common SNPs for UACR:", length(UACR_common_snps), "\n")
+ 
+
+################
+#---------------------------------------------------------------------
+# Subset ADHD datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+# For ADHD, we assume the common SNPs are stored in "ADHD_common_snps"
+PRED_LD_ADHD <- PRED_LD_ADHD[PRED_LD_ADHD$snp %in% ADHD_common_snps, ]
+DIST_ADHD   <- DIST_ADHD[DIST_ADHD$snp %in% ADHD_common_snps, ]
+
+#---------------------------------------------------------------------
+# Subset CAD datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_CAD <- PRED_LD_CAD[PRED_LD_CAD$snp %in% CAD_common_snps, ]
+DIST_CAD   <- DIST_CAD[DIST_CAD$snp %in% CAD_common_snps, ]
+
+cat("CAD - PRED_LD rows:", nrow(PRED_LD_CAD), "\n")
+cat("CAD - DIST rows:  ", nrow(DIST_CAD), "\n")
+
+
+#---------------------------------------------------------------------
+# Subset Colorectal Cancer datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Colorectal_Cancer <- PRED_LD_Colorectal_Cancer[PRED_LD_Colorectal_Cancer$snp %in% Colorectal_Cancer_common_snps, ]
+DIST_C_CANCER <- DIST_C_CANCER[DIST_C_CANCER$snp %in% Colorectal_Cancer_common_snps, ]
+
+#---------------------------------------------------------------------
+# Subset Double Eyelid datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Double_Eyelid <- PRED_LD_Double_Eyelid[PRED_LD_Double_Eyelid$snp %in% Double_Eyelid_common_snps, ]
+DIST_D_LID <- DIST_D_LID[DIST_D_LID$snp %in% Double_Eyelid_common_snps, ]
+
+#---------------------------------------------------------------------
+# Subset Epilepsy datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Epilepsy <- PRED_LD_Epilepsy[PRED_LD_Epilepsy$snp %in% Epilepsy_common_snps, ]
+DIST_EP   <- DIST_EP[DIST_EP$snp %in% Epilepsy_common_snps, ]
+
+#---------------------------------------------------------------------
+# Subset GFR_AFR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_GFR_AFR <- PRED_LD_GFR_AFR[PRED_LD_GFR_AFR$snp %in% GFR_AFR_common_snps, ]
+DIST_GFR_AFR   <- DIST_GFR_AFR[DIST_GFR_AFR$snp %in% GFR_AFR_common_snps, ]
+
+#---------------------------------------------------------------------
+# Subset GFR_EUR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_GFR_EUR <- PRED_LD_GFR_EUR[PRED_LD_GFR_EUR$snp %in% GFR_EUR_common_snps, ]
+DIST_GFR_EUR   <- DIST_GFR_EUR[DIST_GFR_EUR$snp %in% GFR_EUR_common_snps, ]
+
+#---------------------------------------------------------------------
+# Subset UACR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_UACR <- PRED_LD_UACR[PRED_LD_UACR$snp %in% UACR_common_snps, ]
+DIST_UACR   <- DIST_UACR[DIST_UACR$snp %in% UACR_common_snps, ]
+
+
+ 
+# Function to calculate and analyze imputation results
+analyze_imputation <- function(true_file, imputed_file, trait_name, method_name, delim = "\t") {
+  
+  get_complement <- function(allele) {
+    case_when(
+      allele == "A" ~ "T",
+      allele == "T" ~ "A",
+      allele == "C" ~ "G",
+      allele == "G" ~ "C",
+      
+    )
+  }
+  
+  
+  # Calculate number of imputed SNPs
+  imputed_snps <- nrow(imputed_data)
+  
+  # Join data on "snp"
+  joined_data <- inner_join(true_data, imputed_data, by = "snp", suffix = c("_true", "_imp"))
+  
+  # Add complement alleles to the dataset
+  joined_data <- joined_data %>%
+    mutate(
+      REF_complement = get_complement(A2_imp),
+      ALT_complement = get_complement(A1_imp)
+    )
+  # Modify z values
+  joined_data <-joined_data %>%
+    mutate(
+      z_true = case_when(
+        A1_imp == A1_true & A2_imp == A2_true ~ -z_true,
+        A1_imp == A2_true & A2_imp == A1_true ~ z_true,
+        ALT_complement == A1_true & REF_complement == A2_true~ -z_true,
+        ALT_complement == A2_true & REF_complement == A1_true ~ z_true,
+        TRUE ~ NA_real_
+      )
+    )
+  
+  
+  
+  # Calculate coverage percentage
+  coverage <- (nrow(joined_data) / nrow(true_data)) * 100
+  
+  # Linear model for Z-scores
+  z_model <- lm(joined_data$z_imp ~ joined_data$z_true)
+  r2_z <- summary(z_model)$r.squared
+  
+  
+  # Calculate -log10(p) values
+  joined_data <- joined_data %>%
+    mutate(
+      log10p_true = -log10(2 * (pnorm(-abs(z_true)))),
+      log10p_imp = -log10(2 * (pnorm(-abs(z_imp))))
+    )
+  
+  # Linear model for -log10(p)
+  log10p_model <- lm(joined_data$log10p_imp ~ joined_data$log10p_true)
+  r2_log10p <- summary(log10p_model)$r.squared
+ 
+  
+  # Return results as a dataframe row
+  return(data.frame(
+    Trait = trait_name,
+    Method = method_name,
+    Imputed_SNPs = imputed_snps,
+    R2_z = r2_z,
+    R2_log10p = r2_log10p,
+    Imputation_Percentage = coverage
+  ))
+}
+
+
+
+datasets <- list(
+  # DIST datasets
+  list("ADHD", ADHD, DIST_ADHD, "DIST"),
+  list("CAD", CAD, DIST_CAD, "DIST"),
+  list("Colorectal Cancer", Colorectal_Cancer, DIST_C_CANCER, "DIST"),
+  list("Double Eyelid", Double_Eyelid, DIST_D_LID, "DIST"),
+  list("Epilepsy", Epilepsy, DIST_EP, "DIST"),
+  list("GFR_AFR", GFR_AFR, DIST_GFR_AFR, "DIST"),
+  list("GFR_EUR", GFR_EUR, DIST_GFR_EUR, "DIST"),
+  list("UACR", UACR, DIST_UACR, "DIST"),
+  
+  
+  # PRED-LD datasets
+  list("ADHD", ADHD, PRED_LD_ADHD, "PRED_LD"),
+  list("CAD", CAD, PRED_LD_CAD, "PRED_LD"),
+  list("Colorectal Cancer", Colorectal_Cancer, PRED_LD_Colorectal_Cancer, "PRED_LD"),
+  list("Double Eyelid", Double_Eyelid, PRED_LD_Double_Eyelid, "PRED_LD"),
+  list("Epilepsy", Epilepsy, PRED_LD_Epilepsy, "PRED_LD"),
+  list("GFR_AFR", GFR_AFR, PRED_LD_GFR_AFR, "PRED_LD"),
+  list("GFR_EUR", GFR_EUR, PRED_LD_GFR_EUR, "PRED_LD"),
+  list("UACR", UACR, PRED_LD_UACR, "PRED_LD")
+)
+
+# Initialize an empty dataframe to store the results
+results_df <- data.frame()
+
+# Loop through datasets and run the analyze_imputation function
+for (dataset in datasets) {
+  trait <- dataset[[1]]
+  true_data <- dataset[[2]]
+  imputed_data <- dataset[[3]]
+  method <- dataset[[4]]
+  
+  # Analyze the imputation
+  result <- analyze_imputation(true_data, imputed_data, trait, method)
+  
+  # Convert the result to a dataframe and append it to results_df
+  results_df <- rbind(results_df, as.data.frame(result))
+}
+
+
+
+# Define the desired trait order
+desired_order <- c("ADHD",
+                   "UACR",
+                   "GFR_EUR",
+                   "GFR_AFR",
+                   "Epilepsy",
+                   "Colorectal Cancer",
+                   "Double Eyelid",
+                   "CAD")
+
+
+# Convert 'Trait' into a factor with levels in the specified order
+results_df$Trait <- factor(results_df$Trait, levels = desired_order)
+
+# Order the dataframe by the Trait column (now a factor with our custom order)
+results_df <- results_df[order(results_df$Trait), ]
+
+# Print the ordered dataframe
+print(results_df)
+
+
+DIST_same_imp_SNPS <- results_df[results_df$Method=='DIST',]
+PRED_LD_same_imp_SNPS <- results_df[results_df$Method=='PRED_LD',]
+
+
+# View the results dataframe
+print(DIST_same_imp_SNPS)
+
+
+mean(DIST_same_imp_SNPS$Imputed_SNPs)
+
+mean(DIST_same_imp_SNPS$R2_z)
+mean(DIST_same_imp_SNPS$R2_log10p)
+mean(DIST_same_imp_SNPS$Imputation_Percentage)
+
+ 
+# View the results dataframe
+print(PRED_LD_same_imp_SNPS)
+
+
+mean(PRED_LD_same_imp_SNPS$Imputed_SNPs)
+
+mean(PRED_LD_same_imp_SNPS$R2_z)
+mean(PRED_LD_same_imp_SNPS$R2_log10p)
+mean(PRED_LD_same_imp_SNPS$Imputation_Percentage)
+ 
+```
+
+
+## Evaluation between the common SNPs DIST , SSIMP and PRED-LD 
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE} 
+
+# Define the list of datasets
+datasets_COMBINED <- list(
+  list(
+    true_file = "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_ADHD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "ADHD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_CAD_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "CAD",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_COLCANCER_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Colorectal_Cancer",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_DLID_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Double_Eyelid",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_EP_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "Epilepsy",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFRAFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_AFR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_GFR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "GFR_EUR",
+    method_name = "PRED_LD"
+  ),
+  list(
+    true_file = "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt",
+    imputed_file = "NEW_RESULTS_HARM_FINAL/PRED_LD_imputation_results_UACR_chr1_COMBINED_PANELS_harm_NEW_AF2.txt",
+    trait_name = "UACR",
+    method_name = "PRED_LD"
+  )
+)
+
+# Loop over each dataset and read the true file with read.delim
+for (dataset in datasets_COMBINED) {
+  
+  # Create a variable name of the form "PRED_LD_<trait_name>"
+  var_name <- paste0(dataset$method_name, "_", dataset$trait_name)
+  
+  # Read the file specified by 'true_file' (assuming a tab-delimited format)
+  data <- read.delim(dataset$imputed_file, header = TRUE, sep = "\t")
+  
+  # Dynamically assign the data frame to the variable in the global environment
+  assign(var_name, data, envir = .GlobalEnv)
+}
+
+# Optional: List all variables created that start with "PRED_LD_"
+print(ls(pattern = "^PRED_LD_"))
+
+ 
+
+# Define the trait names corresponding to your PRED-LD datasets
+traits <- c("ADHD", "CAD", "Colorectal_Cancer", "Double_Eyelid", 
+            "Epilepsy", "GFR_AFR", "GFR_EUR", "UACR")
+
+# Loop over each trait, filter the dataset, and update it in the global environment
+for (trait in traits) {
+  # Construct the variable name, e.g., "PRED_LD_ADHD"
+  var_name <- paste0("PRED_LD_", trait)
+  
+  # Retrieve the dataset using get()
+  dataset <- get(var_name)
+  
+  # Filter the dataset to retain only rows where imputed equals 1
+  dataset <- dataset[dataset$imputed == 1, ]
+  
+  # Update the dataset in the global environment using assign()
+  assign(var_name, dataset, envir = .GlobalEnv)
+  
+  # Optionally, print the number of rows for the dataset after filtering
+  cat(var_name, "rows:", nrow(dataset), "\n")
+}
+
+
+
+
+
+
+
+# ADHD dataset
+ADHD <- read.delim(
+  "imp_real_values_harm_new_input/ADHD_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# CAD dataset
+CAD <- read.delim(
+  "imp_real_values_harm_new_input/CAD_EUR_chr1_3925_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Colorectal Cancer dataset
+Colorectal_Cancer <- read.delim(
+  "imp_real_values_harm_new_input/Colorectal_Cancer_4097_EAS_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Double Eyelid dataset
+Double_Eyelid <- read.delim(
+  "imp_real_values_harm_new_input/Double_eylid_4021_EAS_chorm1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# Epilepsy dataset
+Epilepsy <- read.delim(
+  "imp_real_values_harm_new_input/Epilepsy_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE 
+)
+
+# GFR_AFR dataset
+GFR_AFR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_AFR_4054_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# GFR_EUR dataset
+GFR_EUR <- read.delim(
+  "imp_real_values_harm_new_input/GFR_EUR_4053_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+# UACR dataset
+UACR <- read.delim(
+  "imp_real_values_harm_new_input/UACR_chrom1_real_values_new_input.txt", 
+  sep = "\t", 
+  
+  stringsAsFactors = FALSE )
+
+
+
+
+
+#Read all SSIMP results
+SSIMP_ADHD <-  read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_ADHD_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_CAD <-read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_CAD_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE) 
+SSIMP_C_CANCER <-  read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_COL_CANCER_EAS_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_D_LID <- read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_DLID_EAS_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_EP <-  read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_EPILEPSY_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_GFR_AFR <-  read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_GFR_AFR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_GFR_EUR <-  read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_GFR_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+SSIMP_UACR <-  read_delim("SSIMP/SSIMP/SSIMP_results/SSIMP_UACR_EUR_chr1.txt", delim = "\t", escape_double = FALSE, trim_ws = TRUE)
+
+
+
+
+
+
+
+
+#Read all DIST results
+DIST_ADHD <-read_delim("DIST/DIST/DIST_results/DIST_ADHD_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_CAD <-read_delim("DIST/DIST/DIST_results/DIST_CAD_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_C_CANCER <-read_delim("DIST/DIST/DIST_results/DIST_COL_CANCER_EAS_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_D_LID <-read_delim("DIST/DIST/DIST_results/DIST_D_LID_EAS_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_EP <-read_delim("DIST/DIST/DIST_results/DIST_EPILPESY_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_GFR_AFR <-read_delim("DIST/DIST/DIST_results/DIST_GFR_AFR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_GFR_EUR <-read_delim("DIST/DIST/DIST_results/DIST_GFR_EUR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+DIST_UACR <-read_delim("DIST/DIST/DIST_results/DIST_UACR_chr1.txt", delim = " ", escape_double = FALSE, trim_ws = TRUE)
+
+
+
+ 
+
+
+
+
+
+
+
+#FILTER DIST
+DIST_ADHD <- DIST_ADHD[DIST_ADHD$type == 0,]
+DIST_CAD <- DIST_CAD[DIST_CAD$type == 0,]
+DIST_C_CANCER <- DIST_C_CANCER[DIST_C_CANCER$type == 0,]
+DIST_D_LID <- DIST_D_LID[DIST_D_LID$type == 0,]
+DIST_EP <- DIST_EP[DIST_EP$type == 0,]
+DIST_GFR_AFR <- DIST_GFR_AFR[DIST_GFR_AFR$type == 0,]
+DIST_GFR_EUR <- DIST_GFR_EUR[DIST_GFR_EUR$type == 0,]
+DIST_UACR <- DIST_UACR[DIST_UACR$type == 0,]
+
+
+
+
+#FILTER SSIMP
+SSIMP_ADHD <- SSIMP_ADHD[SSIMP_ADHD$source == 'SSIMP',]
+SSIMP_CAD <- SSIMP_CAD[SSIMP_CAD$source == 'SSIMP',]
+SSIMP_C_CANCER <- SSIMP_C_CANCER[SSIMP_C_CANCER$source == 'SSIMP',]
+SSIMP_D_LID <- SSIMP_D_LID[SSIMP_D_LID$source == 'SSIMP',]
+SSIMP_EP <- SSIMP_EP[SSIMP_EP$source == 'SSIMP',]
+SSIMP_GFR_AFR <- SSIMP_GFR_AFR[SSIMP_GFR_AFR$source == 'SSIMP',]
+SSIMP_GFR_EUR <- SSIMP_GFR_EUR[SSIMP_GFR_EUR$source == 'SSIMP',]
+SSIMP_UACR <- SSIMP_UACR[SSIMP_UACR$source == 'SSIMP',]
+
+
+
+# Rename DIST datasets
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "a1"] <- "A2"
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "a2"] <- "A1"
+colnames(DIST_ADHD)[colnames(DIST_ADHD) == "rsid"] <- "snp"
+
+colnames(DIST_CAD)[colnames(DIST_CAD) == "a1"] <- "A2"
+colnames(DIST_CAD)[colnames(DIST_CAD) == "a2"] <- "A1"
+colnames(DIST_CAD)[colnames(DIST_CAD) == "rsid"] <- "snp"
+
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "a1"] <- "A2"
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "a2"] <- "A1"
+colnames(DIST_C_CANCER)[colnames(DIST_C_CANCER) == "rsid"] <- "snp"
+
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "a1"] <- "A2"
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "a2"] <- "A1"
+colnames(DIST_D_LID)[colnames(DIST_D_LID) == "rsid"] <- "snp"
+
+colnames(DIST_EP)[colnames(DIST_EP) == "a1"] <- "A2"
+colnames(DIST_EP)[colnames(DIST_EP) == "a2"] <- "A1"
+colnames(DIST_EP)[colnames(DIST_EP) == "rsid"] <- "snp"
+
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "a1"] <- "A2"
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "a2"] <- "A1"
+colnames(DIST_GFR_AFR)[colnames(DIST_GFR_AFR) == "rsid"] <- "snp"
+
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "a1"] <- "A2"
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "a2"] <- "A1"
+colnames(DIST_GFR_EUR)[colnames(DIST_GFR_EUR) == "rsid"] <- "snp"
+
+colnames(DIST_UACR)[colnames(DIST_UACR) == "a1"] <- "A2"
+colnames(DIST_UACR)[colnames(DIST_UACR) == "a2"] <- "A1"
+colnames(DIST_UACR)[colnames(DIST_UACR) == "rsid"] <- "snp"
+
+
+
+
+
+
+
+
+
+#for SSIMP rename columns : Allele1 to A2 and Allele2 to A1
+#for RAISS rename columns :A1 to A1 and A0 to A2
+#for DIST rename columns :A1 to A2 and A2 to A1
+# Rename SSIMP datasets
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "Allele1"] <- "A2"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "Allele2"] <- "A1"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "z_imp"] <- "z"
+colnames(SSIMP_ADHD)[colnames(SSIMP_ADHD) == "SNP"] <- "snp"
+
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "Allele1"] <- "A2"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "Allele2"] <- "A1"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "z_imp"] <- "z"
+colnames(SSIMP_CAD)[colnames(SSIMP_CAD) == "SNP"] <- "snp"
+
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "Allele1"] <- "A2"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "Allele2"] <- "A1"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "z_imp"] <- "z"
+colnames(SSIMP_C_CANCER)[colnames(SSIMP_C_CANCER) == "SNP"] <- "snp"
+
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "Allele1"] <- "A2"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "Allele2"] <- "A1"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "z_imp"] <- "z"
+colnames(SSIMP_D_LID)[colnames(SSIMP_D_LID) == "SNP"] <- "snp"
+
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "Allele1"] <- "A2"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "Allele2"] <- "A1"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "z_imp"] <- "z"
+colnames(SSIMP_EP)[colnames(SSIMP_EP) == "SNP"] <- "snp"
+
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "Allele1"] <- "A2"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "Allele2"] <- "A1"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "z_imp"] <- "z"
+colnames(SSIMP_GFR_AFR)[colnames(SSIMP_GFR_AFR) == "SNP"] <- "snp"
+
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "Allele1"] <- "A2"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "Allele2"] <- "A1"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "z_imp"] <- "z"
+colnames(SSIMP_GFR_EUR)[colnames(SSIMP_GFR_EUR) == "SNP"] <- "snp"
+
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "Allele1"] <- "A2"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "Allele2"] <- "A1"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "z_imp"] <- "z"
+colnames(SSIMP_UACR)[colnames(SSIMP_UACR) == "SNP"] <- "snp"
+
+
+
+
+
+
+# Compute common SNPs among the three datasets (imputed, SSIMP, DIST) for each trait
+
+# ADHD
+ADHD_common_snps <- Reduce(intersect, list(PRED_LD_ADHD$snp, SSIMP_ADHD$snp, DIST_ADHD$snp))
+cat("Number of common SNPs for ADHD:", length(ADHD_common_snps), "\n")
+
+# CAD
+CAD_common_snps <- Reduce(intersect, list(PRED_LD_CAD$snp, SSIMP_CAD$snp, DIST_CAD$snp))
+cat("Number of common SNPs for CAD:", length(CAD_common_snps), "\n")
+
+# Colorectal Cancer
+# Note: For Colorectal Cancer the SSIMP and DIST variables are named SSIMP_C_CANCER and DIST_C_CANCER.
+Colorectal_Cancer_common_snps <- Reduce(intersect, 
+                                        list(PRED_LD_Colorectal_Cancer$snp, SSIMP_C_CANCER$snp, DIST_C_CANCER$snp))
+cat("Number of common SNPs for Colorectal Cancer:", length(Colorectal_Cancer_common_snps), "\n")
+
+# Double Eyelid
+# Note: For Double Eyelid the SSIMP and DIST variables are named SSIMP_D_LID and DIST_D_LID.
+Double_Eyelid_common_snps <- Reduce(intersect, 
+                                    list(PRED_LD_Double_Eyelid$snp, SSIMP_D_LID$snp, DIST_D_LID$snp))
+cat("Number of common SNPs for Double Eyelid:", length(Double_Eyelid_common_snps), "\n")
+
+# Epilepsy
+Epilepsy_common_snps <- Reduce(intersect, list(PRED_LD_Epilepsy$snp, SSIMP_EP$snp, DIST_EP$snp))
+cat("Number of common SNPs for Epilepsy:", length(Epilepsy_common_snps), "\n")
+
+# GFR_AFR
+GFR_AFR_common_snps <- Reduce(intersect, list(PRED_LD_GFR_AFR$snp, SSIMP_GFR_AFR$snp, DIST_GFR_AFR$snp))
+cat("Number of common SNPs for GFR_AFR:", length(GFR_AFR_common_snps), "\n")
+
+# GFR_EUR
+GFR_EUR_common_snps <- Reduce(intersect, list(PRED_LD_GFR_EUR$snp, SSIMP_GFR_EUR$snp, DIST_GFR_EUR$snp))
+cat("Number of common SNPs for GFR_EUR:", length(GFR_EUR_common_snps), "\n")
+
+# UACR
+UACR_common_snps <- Reduce(intersect, list(PRED_LD_UACR$snp, SSIMP_UACR$snp, DIST_UACR$snp))
+cat("Number of common SNPs for UACR:", length(UACR_common_snps), "\n")
+
+ 
+################
+#---------------------------------------------------------------------
+# Subset ADHD datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+# For ADHD, we assume the common SNPs are stored in "ADHD_common_snps"
+PRED_LD_ADHD <- PRED_LD_ADHD[PRED_LD_ADHD$snp %in% ADHD_common_snps, ]
+SSIMP_ADHD   <- SSIMP_ADHD[SSIMP_ADHD$snp %in% ADHD_common_snps, ]
+DIST_ADHD    <- DIST_ADHD[DIST_ADHD$snp %in% ADHD_common_snps, ]
+
+# Optionally, print the number of SNPs retained for ADHD
+cat("ADHD - PRED_LD rows:", nrow(PRED_LD_ADHD), "\n")
+cat("ADHD - SSIMP rows:  ", nrow(SSIMP_ADHD), "\n")
+cat("ADHD - DIST rows:   ", nrow(DIST_ADHD), "\n\n")
+
+#---------------------------------------------------------------------
+# Subset CAD datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_CAD <- PRED_LD_CAD[PRED_LD_CAD$snp %in% CAD_common_snps, ]
+SSIMP_CAD   <- SSIMP_CAD[SSIMP_CAD$snp %in% CAD_common_snps, ]
+DIST_CAD    <- DIST_CAD[DIST_CAD$snp %in% CAD_common_snps, ]
+
+cat("CAD - PRED_LD rows:", nrow(PRED_LD_CAD), "\n")
+cat("CAD - SSIMP rows:  ", nrow(SSIMP_CAD), "\n")
+cat("CAD - DIST rows:   ", nrow(DIST_CAD), "\n\n")
+
+#---------------------------------------------------------------------
+# Subset Colorectal Cancer datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Colorectal_Cancer <- PRED_LD_Colorectal_Cancer[PRED_LD_Colorectal_Cancer$snp %in% Colorectal_Cancer_common_snps, ]
+SSIMP_C_CANCER <- SSIMP_C_CANCER[SSIMP_C_CANCER$snp %in% Colorectal_Cancer_common_snps, ]
+DIST_C_CANCER  <- DIST_C_CANCER[DIST_C_CANCER$snp %in% Colorectal_Cancer_common_snps, ]
+
+cat("Colorectal Cancer - PRED_LD rows:", nrow(PRED_LD_Colorectal_Cancer), "\n")
+cat("Colorectal Cancer - SSIMP rows:  ", nrow(SSIMP_C_CANCER), "\n")
+cat("Colorectal Cancer - DIST rows:   ", nrow(DIST_C_CANCER), "\n\n")
+
+#---------------------------------------------------------------------
+# Subset Double Eyelid datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Double_Eyelid <- PRED_LD_Double_Eyelid[PRED_LD_Double_Eyelid$snp %in% Double_Eyelid_common_snps, ]
+SSIMP_D_LID <- SSIMP_D_LID[SSIMP_D_LID$snp %in% Double_Eyelid_common_snps, ]
+DIST_D_LID  <- DIST_D_LID[DIST_D_LID$snp %in% Double_Eyelid_common_snps, ]
+
+cat("Double Eyelid - PRED_LD rows:", nrow(PRED_LD_Double_Eyelid), "\n")
+cat("Double Eyelid - SSIMP rows:  ", nrow(SSIMP_D_LID), "\n")
+cat("Double Eyelid - DIST rows:   ", nrow(DIST_D_LID), "\n\n")
+
+#---------------------------------------------------------------------
+# Subset Epilepsy datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_Epilepsy <- PRED_LD_Epilepsy[PRED_LD_Epilepsy$snp %in% Epilepsy_common_snps, ]
+SSIMP_EP   <- SSIMP_EP[SSIMP_EP$snp %in% Epilepsy_common_snps, ]
+DIST_EP    <- DIST_EP[DIST_EP$snp %in% Epilepsy_common_snps, ]
+
+cat("Epilepsy - PRED_LD rows:", nrow(PRED_LD_Epilepsy), "\n")
+cat("Epilepsy - SSIMP rows:  ", nrow(SSIMP_EP), "\n")
+cat("Epilepsy - DIST rows:   ", nrow(DIST_EP), "\n\n")
+
+#---------------------------------------------------------------------
+# Subset GFR_AFR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_GFR_AFR <- PRED_LD_GFR_AFR[PRED_LD_GFR_AFR$snp %in% GFR_AFR_common_snps, ]
+SSIMP_GFR_AFR   <- SSIMP_GFR_AFR[SSIMP_GFR_AFR$snp %in% GFR_AFR_common_snps, ]
+DIST_GFR_AFR    <- DIST_GFR_AFR[DIST_GFR_AFR$snp %in% GFR_AFR_common_snps, ]
+
+cat("GFR_AFR - PRED_LD rows:", nrow(PRED_LD_GFR_AFR), "\n")
+cat("GFR_AFR - SSIMP rows:  ", nrow(SSIMP_GFR_AFR), "\n")
+cat("GFR_AFR - DIST rows:   ", nrow(DIST_GFR_AFR), "\n\n")
+
+#---------------------------------------------------------------------
+# Subset GFR_EUR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_GFR_EUR <- PRED_LD_GFR_EUR[PRED_LD_GFR_EUR$snp %in% GFR_EUR_common_snps, ]
+SSIMP_GFR_EUR   <- SSIMP_GFR_EUR[SSIMP_GFR_EUR$snp %in% GFR_EUR_common_snps, ]
+DIST_GFR_EUR    <- DIST_GFR_EUR[DIST_GFR_EUR$snp %in% GFR_EUR_common_snps, ]
+
+cat("GFR_EUR - PRED_LD rows:", nrow(PRED_LD_GFR_EUR), "\n")
+cat("GFR_EUR - SSIMP rows:  ", nrow(SSIMP_GFR_EUR), "\n")
+cat("GFR_EUR - DIST rows:   ", nrow(DIST_GFR_EUR), "\n\n")
+
+#---------------------------------------------------------------------
+# Subset UACR datasets using the common SNPs computed previously
+#---------------------------------------------------------------------
+PRED_LD_UACR <- PRED_LD_UACR[PRED_LD_UACR$snp %in% UACR_common_snps, ]
+SSIMP_UACR   <- SSIMP_UACR[SSIMP_UACR$snp %in% UACR_common_snps, ]
+DIST_UACR    <- DIST_UACR[DIST_UACR$snp %in% UACR_common_snps, ]
+
+cat("UACR - PRED_LD rows:", nrow(PRED_LD_UACR), "\n")
+cat("UACR - SSIMP rows:  ", nrow(SSIMP_UACR), "\n")
+cat("UACR - DIST rows:   ", nrow(DIST_UACR), "\n")
+
+
+
+
+
+
+
+# FILTER SSIMP and remove duplicate SNPs
+SSIMP_ADHD <- SSIMP_ADHD %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_CAD <- SSIMP_CAD %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_C_CANCER <- SSIMP_C_CANCER %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_D_LID <- SSIMP_D_LID %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_EP <- SSIMP_EP %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_GFR_AFR <- SSIMP_GFR_AFR %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_GFR_EUR <- SSIMP_GFR_EUR %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+SSIMP_UACR <- SSIMP_UACR %>% filter(source == 'SSIMP') %>% distinct(snp, .keep_all = TRUE)
+
+
+
+
+
+
+
+# Function to calculate and analyze imputation results
+analyze_imputation <- function(true_file, imputed_file, trait_name, method_name, delim = "\t") {
+  
+  get_complement <- function(allele) {
+    case_when(
+      allele == "A" ~ "T",
+      allele == "T" ~ "A",
+      allele == "C" ~ "G",
+      allele == "G" ~ "C"
+    )
+  }
+  
+  # Read the "true" data
+  true_data <- read_delim(true_file, delim = delim, escape_double = FALSE, trim_ws = TRUE)
+  
+  # Read the "imputed" data
+  imputed_data <- read_delim(imputed_file, delim = delim, escape_double = FALSE, trim_ws = TRUE)
+  imputed_data <- na.omit(imputed_data)
+  snp_storage[[trait_name]] <<- imputed_data$snp  # Use global assignment to store SNPs
+  
+  # Filter for imputed rows with R2 b	% 0.5
+  imputed_data <- imputed_data[imputed_data$imputed == 1 & imputed_data$R2 >= 0.5, ]
+  
+  # Calculate number of imputed SNPs
+  imputed_snps <- nrow(imputed_data)
+  
+  # Join data on "snp"
+  joined_data <- inner_join(true_data, imputed_data, by = "snp", suffix = c("_true", "_imp"))
+  
+  # Store SNPs for this trait
+  #snp_storage[[trait_name]] <<- joined_data$snp  # Use global assignment to store SNPs
+  
+  # Add complement alleles to the dataset
+  joined_data <- joined_data %>%
+    mutate(
+      REF_complement = get_complement(A2_imp),
+      ALT_complement = get_complement(A1_imp)
+    )
+  
+  # Modify z values
+  joined_data <- joined_data %>%
+    mutate(
+      z_true = case_when(
+        A1_imp == A1_true & A2_imp == A2_true ~ z_true,
+        A1_imp == A2_true & A2_imp == A1_true ~ -z_true,
+        ALT_complement == A1_true & REF_complement == A2_true ~ z_true,
+        ALT_complement == A2_true & REF_complement == A1_true ~ -z_true,
+        TRUE ~ NA_real_
+      )
+    )
+  
+  # Calculate coverage percentage
+  coverage <- (nrow(joined_data) / nrow(true_data)) * 100
+  
+  # Linear model for Z-scores
+  z_model <- lm(joined_data$z_imp ~ joined_data$z_true)
+  r2_z <- summary(z_model)$r.squared
+  
+  # Calculate -log10(p) values
+  joined_data <- joined_data %>%
+    mutate(
+      log10p_true = -log10(2 * (pnorm(-abs(z_true)))),
+      log10p_imp = -log10(2 * (pnorm(-abs(z_imp))))
+    )
+  
+  # Linear model for -log10(p)
+  log10p_model <- lm(joined_data$log10p_imp ~ joined_data$log10p_true)
+  r2_log10p <- summary(log10p_model)$r.squared
+  
+  # Return results as a dataframe row
+  return(data.frame(
+    Trait = trait_name,
+    Method = method_name,
+    Imputed_SNPs = imputed_snps,
+    R2_z = r2_z,
+    R2_log10p = r2_log10p,
+    Imputation_Percentage = coverage
+  ))
+}
+
+
+
+
+
+
+
+
+
+
+# Function to calculate and analyze imputation results
+analyze_imputation <- function(true_file, imputed_file, trait_name, method_name, delim = "\t") {
+  
+  get_complement <- function(allele) {
+    case_when(
+      allele == "A" ~ "T",
+      allele == "T" ~ "A",
+      allele == "C" ~ "G",
+      allele == "G" ~ "C",
+      
+    )
+  }
+  
+  
+  # Calculate number of imputed SNPs
+  imputed_snps <- nrow(imputed_data)
+  
+  # Join data on "snp"
+  joined_data <- inner_join(true_data, imputed_data, by = "snp", suffix = c("_true", "_imp"))
+  
+  # Add complement alleles to the dataset
+  joined_data <- joined_data %>%
+    mutate(
+      REF_complement = get_complement(A2_imp),
+      ALT_complement = get_complement(A1_imp)
+    )
+  # Modify z values
+  joined_data <-joined_data %>%
+    mutate(
+      z_true = case_when(
+        A1_imp == A1_true & A2_imp == A2_true ~ -z_true,
+        A1_imp == A2_true & A2_imp == A1_true ~ z_true,
+        ALT_complement == A1_true & REF_complement == A2_true~ -z_true,
+        ALT_complement == A2_true & REF_complement == A1_true ~ z_true,
+        TRUE ~ NA_real_
+      )
+    )
+  
+  
+  
+  # Calculate coverage percentage
+  coverage <- (nrow(joined_data) / nrow(true_data)) * 100
+  
+  # Linear model for Z-scores
+  z_model <- lm(joined_data$z_imp ~ joined_data$z_true)
+  r2_z <- summary(z_model)$r.squared
+  
+  
+  # Calculate -log10(p) values
+  joined_data <- joined_data %>%
+    mutate(
+      log10p_true = -log10(2 * (pnorm(-abs(z_true)))),
+      log10p_imp = -log10(2 * (pnorm(-abs(z_imp))))
+    )
+  
+  # Linear model for -log10(p)
+  log10p_model <- lm(joined_data$log10p_imp ~ joined_data$log10p_true)
+  r2_log10p <- summary(log10p_model)$r.squared
+  # 
+  # # Create the scatter plot
+  # plot(
+  #   joined_data$z_true, joined_data$z_imp,
+  #   main = paste0(trait_name, " - ", method_name, " (RB2 = ", round(r2_z, 4), ")"),
+  #   xlab = "Actual z values",
+  #   ylab = "Imputed z values",
+  #   pch = 20,
+  #   col = 'black'
+  # )
+  # grid()
+  # abline(a = 0, b = 1, col = 'red', lwd = 2)
+  
+  # Return results as a dataframe row
+  return(data.frame(
+    Trait = trait_name,
+    Method = method_name,
+    Imputed_SNPs = imputed_snps,
+    R2_z = r2_z,
+    R2_log10p = r2_log10p,
+    Imputation_Percentage = coverage
+  ))
+}
+
+
+
+datasets <- list(
+  # SSIMP datasets
+  list("ADHD", ADHD, SSIMP_ADHD, "SSIMP"),
+  list("CAD", CAD, SSIMP_CAD, "SSIMP"),
+  list("Colorectal Cancer", Colorectal_Cancer, SSIMP_C_CANCER, "SSIMP"),
+  list("Double Eyelid", Double_Eyelid, SSIMP_D_LID, "SSIMP"),
+  list("Epilepsy", Epilepsy, SSIMP_EP, "SSIMP"),
+  list("GFR_AFR", GFR_AFR, SSIMP_GFR_AFR, "SSIMP"),
+  list("GFR_EUR", GFR_EUR, SSIMP_GFR_EUR, "SSIMP"),
+  list("UACR", UACR, SSIMP_UACR, "SSIMP"),
+  
+  # DIST datasets
+  list("ADHD", ADHD, DIST_ADHD, "DIST"),
+  list("CAD", CAD, DIST_CAD, "DIST"),
+  list("Colorectal Cancer", Colorectal_Cancer, DIST_C_CANCER, "DIST"),
+  list("Double Eyelid", Double_Eyelid, DIST_D_LID, "DIST"),
+  list("Epilepsy", Epilepsy, DIST_EP, "DIST"),
+  list("GFR_AFR", GFR_AFR, DIST_GFR_AFR, "DIST"),
+  list("GFR_EUR", GFR_EUR, DIST_GFR_EUR, "DIST"),
+  list("UACR", UACR, DIST_UACR, "DIST"),
+  
+  # PRED-LD datasets
+  list("ADHD", ADHD, PRED_LD_ADHD, "PRED_LD"),
+  list("CAD", CAD, PRED_LD_CAD, "PRED_LD"),
+  list("Colorectal Cancer", Colorectal_Cancer, PRED_LD_Colorectal_Cancer, "PRED_LD"),
+  list("Double Eyelid", Double_Eyelid, PRED_LD_Double_Eyelid, "PRED_LD"),
+  list("Epilepsy", Epilepsy, PRED_LD_Epilepsy, "PRED_LD"),
+  list("GFR_AFR", GFR_AFR, PRED_LD_GFR_AFR, "PRED_LD"),
+  list("GFR_EUR", GFR_EUR, PRED_LD_GFR_EUR, "PRED_LD"),
+  list("UACR", UACR, PRED_LD_UACR, "PRED_LD")
+)
+
+# Initialize an empty dataframe to store the results
+results_df <- data.frame()
+
+# Loop through datasets and run the analyze_imputation function
+for (dataset in datasets) {
+  trait <- dataset[[1]]
+  true_data <- dataset[[2]]
+  imputed_data <- dataset[[3]]
+  method <- dataset[[4]]
+  
+  # Analyze the imputation
+  result <- analyze_imputation(true_data, imputed_data, trait, method)
+  
+  # Convert the result to a dataframe and append it to results_df
+  results_df <- rbind(results_df, as.data.frame(result))
+}
+
+
+
+# Define the desired trait order
+desired_order <- c("ADHD",
+                   "UACR",
+                   "GFR_EUR",
+                   "GFR_AFR",
+                   "Epilepsy",
+                   "Colorectal Cancer",
+                   "Double Eyelid",
+                   "CAD")
+
+
+# Convert 'Trait' into a factor with levels in the specified order
+results_df$Trait <- factor(results_df$Trait, levels = desired_order)
+
+# Order the dataframe by the Trait column (now a factor with our custom order)
+results_df <- results_df[order(results_df$Trait), ]
+
+# Print the ordered dataframe
+print(results_df)
+
+
+
+DIST_same_imp_SNPS <- results_df[results_df$Method=='DIST',]
+SSIMP_same_imp_SNPS <- results_df[results_df$Method=='SSIMP',]
+PRED_LD_same_imp_SNPS <- results_df[results_df$Method=='PRED_LD',]
+
+# View the results dataframe
+print(DIST_same_imp_SNPS)
+
+
+mean(DIST_same_imp_SNPS$Imputed_SNPs)
+
+mean(DIST_same_imp_SNPS$R2_z)
+mean(DIST_same_imp_SNPS$R2_log10p)
+mean(DIST_same_imp_SNPS$Imputation_Percentage)
+
+
+
+# View the results dataframe
+print(SSIMP_same_imp_SNPS)
+
+
+mean(SSIMP_same_imp_SNPS$Imputed_SNPs)
+
+mean(SSIMP_same_imp_SNPS$R2_z)
+mean(SSIMP_same_imp_SNPS$R2_log10p)
+mean(SSIMP_same_imp_SNPS$Imputation_Percentage)
+
+
+
+
+
+
+
+# View the results dataframe
+print(PRED_LD_same_imp_SNPS)
+
+
+mean(PRED_LD_same_imp_SNPS$Imputed_SNPs)
+
+mean(PRED_LD_same_imp_SNPS$R2_z)
+mean(PRED_LD_same_imp_SNPS$R2_log10p)
+mean(PRED_LD_same_imp_SNPS$Imputation_Percentage)
+
+
+ 
+```
