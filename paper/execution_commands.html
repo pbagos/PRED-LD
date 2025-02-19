@@ -465,21 +465,21 @@ SNPs.<br />
 <br></p>
 <p>Reference panel: 1000 Genomes Project Phase 3, hg38 (as .csv file) <a href="https://zenodo.org/records/13940447" class="uri">https://zenodo.org/records/13940447</a> <br></p>
 <p>Precomputed LD matrices : <a href="https://zenodo.org/records/10391372" class="uri">https://zenodo.org/records/10391372</a></p>
-<pre class="text"><code>time raiss --chrom chr1 --gwas ADHD --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
+<pre class="text"><code>time raiss --chrom chr1 --gwas ADHD --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
 
-time raiss --chrom chr1 --gwas UACR --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
+time raiss --chrom chr1 --gwas UACR --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold  0.000001 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
 
-time raiss --chrom chr1 --gwas GFREUR --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
+time raiss --chrom chr1 --gwas GFREUR --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
 
 time raiss --chrom chr1 --gwas EP --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
 
-time raiss --chrom chr1 --gwas CAD --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 4 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
+time raiss --chrom chr1 --gwas CAD --ld-folder ./ld/EUR --ref-folder ref/EUR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
 
-time raiss --chrom chr1 --gwas DLID --ld-folder ./ld/EAS --ref-folder ref/EAS/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
+time raiss --chrom chr1 --gwas DLID --ld-folder ./ld/EAS --ref-folder ref/EAS/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; 
 
-time raiss --chrom chr1 --gwas CCANCER --ld-folder ./ld/EAS --ref-folder ref/EAS/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.5 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39;  
+time raiss --chrom chr1 --gwas CCANCER --ld-folder ./ld/EAS --ref-folder ref/EAS/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.1 --minimum-ld 0 --R2-threshold 0.0 --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39;  
 
-time raiss --chrom chr1 --gwas GFRAFR --ld-folder ./ld/AFR --ref-folder ref/AFR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.000001 --minimum-ld 0 --R2-threshold 0.5  --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; </code></pre>
+time raiss --chrom chr1 --gwas GFRAFR --ld-folder ./ld/AFR --ref-folder ref/AFR/ --zscore-folder ./ --output-folder out/ --eigen-threshold 0.000001 --minimum-ld 0 --R2-threshold 0.0  --window-size 1000000 --buffer-size 250000 --ref-panel-suffix &#39;.csv&#39; </code></pre>
 </div>
 </div>
 <div id="ssimp" class="section level2">
@@ -523,21 +523,21 @@ time ./dist -c 1 GFRAFR.txt -o DIST_GFR_AFR_chr1.txt -r 1kg.eur.ref.panel.dist/r
 <div id="fapi" class="section level2">
 <h2>FAPI</h2>
 <p>Reference panel: 1000 Genomes Project Phase 3, hg19 <a href="https://hgdownload.cse.ucsc.edu/gbdb/hg19/1000Genomes/phase3/" class="uri">https://hgdownload.cse.ucsc.edu/gbdb/hg19/1000Genomes/phase3/</a></p>
-<pre class="text"><code>time java -Xmx60000m -jar fapi.jar --impute --pfile ADHD.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_ADHD.txt
+<pre class="text"><code>time java -Xmx60000m -jar fapi.jar --impute --pfile ADHD.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web   --out FAPI_ADHD.txt
 
-time java -Xmx60000m -jar fapi.jar --impute --pfile UACR.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_UACR.txt
+time java -Xmx60000m -jar fapi.jar --impute --pfile UACR.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web   --out  FAPI_UACR.txt
 
-time java -Xmx60000m -jar fapi.jar --impute --pfile GFREUR.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_GFREUR.txt
+time java -Xmx60000m -jar fapi.jar --impute --pfile GFREUR.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web   --out  FAPI_GFREUR.txt
 
-time java -Xmx60000m -jar fapi.jar --impute --pfile EP.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_EP.txt
+time java -Xmx60000m -jar fapi.jar --impute --pfile EP.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out  FAPI_EP.txt
 
-time java -Xmx60000m -jar fapi.jar --impute --pfile CAD.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_CAD.txt
+time java -Xmx60000m -jar fapi.jar --impute --pfile CAD.txt --gfile EUR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web  --out FAPI_CAD.txt
 
-time java -Xmx60000m -jar fapi.jar --impute --pfile DLID.txt --gfile EAS_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_DLID.txt
+time java -Xmx60000m -jar fapi.jar --impute --pfile DLID.txt --gfile EAS_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web   --out FAPI_DLID.txt
 
-time java -Xmx60000m -jar fapi.jar --impute --pfile CCANCER.txt --gfile EAS_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_CCANCER.txt
+time java -Xmx60000m -jar fapi.jar --impute --pfile CCANCER.txt --gfile EAS_chr1.1kg.phase3.v5a.vcf.gz::vcf  --no-web --out FAPI_CCANCER.txt
 
-time java -Xmx60000m -jar fapi.jar --impute --pfile GFRAFR.txt --gfile AFR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web --out FAPI_GFRAFR.txt</code></pre>
+time java -Xmx60000m -jar fapi.jar --impute --pfile GFRAFR.txt --gfile AFR_chr1.1kg.phase3.v5a.vcf.gz::vcf --no-web  --out FAPI_GFRAFR.txt</code></pre>
 </div>
 </div>
 
