@@ -1,6 +1,11 @@
 # PRED-LD
 PRED-LD: A tool for GWAS summary statistics Imputation, using precalculated LD statistics
- 
+
+## Citation
+If you use PRED-LD in your scientific research, please consider citing
+
+Manios, G.A., Michailidi, A., Kontou, P.I. et al. PRED-LD: efficient imputation of GWAS summary statistics. BMC Bioinformatics 26, 107 (2025). https://doi.org/10.1186/s12859-025-06119-y
+
 ## Web tool
 Web tool available at :  [https://compgen.dib.uth.gr/PRED-LD/](https://compgen.dib.uth.gr/PRED-LD/)
   or [195.251.108.198:3839/PRED-LD](http://195.251.108.198:3839/PRED-LD/)
@@ -8,10 +13,6 @@ Web tool available at :  [https://compgen.dib.uth.gr/PRED-LD/](https://compgen.d
 ## Demo LD reference panel (Download before running PRED-LD)
 [Demo LD ref folder](https://drive.google.com/file/d/1bqz87p0YfxblYrWbFjL4gcq-9fnH8DJP/view?usp=drive_link)
 
-## Citation
-If you use PRED-LD in your scientific research, please consider citing
-
-Manios, G.A., Michailidi, A., Kontou, P.I. et al. PRED-LD: efficient imputation of GWAS summary statistics. BMC Bioinformatics 26, 107 (2025). https://doi.org/10.1186/s12859-025-06119-y
 
 ## LD resources 
 ### HapMap
