@@ -485,8 +485,8 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
     ld_file = 'ref/TOP_LD/' + population + '/SNV/' + population + '_chr' + str(
         chrom) + '_no_filter_0.2_1000000_LD.csv.gz'
 
-    # Load MAF DataFrame
-    maf_df = dd.read_csv(maf_file, blocksize=None, usecols=['Position', 'rsID', 'MAF', 'REF', 'ALT'])
+     # Load MAF DataFrame
+    maf_df = dd.read_csv(maf_file, blocksize=None, usecols=['Uniq_ID', 'rsID', 'MAF', 'REF', 'ALT'])
     # Filter early
     maf_df = maf_df[maf_df['MAF'] >= maf_threshold]
 
@@ -495,21 +495,28 @@ def TOP_LD_info(rs_list, chrom, population, maf_threshold, R2_threshold, imp_snp
 
     ####
     # Load LD DataFrame
-    ld_df = dd.read_csv(ld_file, blocksize=None, usecols=['SNP1', 'SNP2', 'R2', '+/-corr', 'Dprime'])
+    ld_df = dd.read_csv(ld_file, blocksize=None, usecols=['Uniq_ID_1', 'Uniq_ID_2', 'R2', '+/-corr', 'Dprime'])
     ld_df = ld_df[ld_df['R2'] >= R2_threshold]
 
     # Merge operations
     # Rename maf_df once and for all
-    maf_df = maf_df.rename(columns={'Position': 'SNP', 'rsID': 'rsID', 'MAF': 'MAF'})
+    #maf_df = maf_df.rename(columns={'Uniq_ID': 'Uniq_ID', 'rsID': 'rsID', 'MAF': 'MAF'})
     merged_df = dd.merge(ld_df, maf_df.rename(
-        columns={'SNP': 'SNP1', 'rsID': 'rsID1', 'MAF': 'MAF1', 'REF': 'REF1', 'ALT': 'ALT1'}), on='SNP1')
+        columns={'Uniq_ID': 'Uniq_ID_1', 'rsID': 'rsID1', 'MAF': 'MAF1', 'REF': 'REF1', 'ALT': 'ALT1'}), on='Uniq_ID_1')
     merged_df = dd.merge(merged_df, maf_df.rename(
-        columns={'SNP': 'SNP2', 'rsID': 'rsID2', 'MAF': 'MAF2', 'REF': 'REF2', 'ALT': 'ALT2'}), on='SNP2')
+        columns={'Uniq_ID': 'Uniq_ID_2', 'rsID': 'rsID2', 'MAF': 'MAF2', 'REF': 'REF2', 'ALT': 'ALT2'}), on='Uniq_ID_2')
 
     # Select and rename desired columns
     final_df = merged_df[
-        ['SNP1', 'SNP2', 'R2', '+/-corr', 'Dprime', 'rsID1', 'rsID2', 'MAF1', 'MAF2', 'REF1', 'ALT1', 'REF2', 'ALT2']]
-    final_df = final_df.rename(columns={'SNP1': 'pos1', 'SNP2': 'pos2'})
+        ['Uniq_ID_1', 'Uniq_ID_2', 'R2', '+/-corr', 'Dprime', 'rsID1', 'rsID2', 'MAF1', 'MAF2', 'REF1', 'ALT1', 'REF2', 'ALT2']]
+
+    final_df = final_df.rename(columns={'Uniq_ID_1': 'pos1', 'Uniq_ID_2': 'pos2'})
+
+
+    final_df = final_df.assign(
+        pos1=final_df["pos1"].str.partition(":")[0],
+        pos2=final_df["pos2"].str.partition(":")[0],
+    )
 
     if imp_snp_list:
         result = final_df[final_df['rsID1'].isin(rs_list) & final_df['rsID2'].isin(imp_snp_list)].compute()
